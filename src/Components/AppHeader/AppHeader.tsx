@@ -45,8 +45,8 @@ const AppHeader = () => {
     ];
 
 return(
-    <Header style={{ display: 'flex', alignItems: 'center' }}>
-    <Menu theme='dark' mode='horizontal' defaultSelectedKeys={['DienstplanBw']} style={{ flex: 1, minWidth: 0 }}>
+    <Header style={{ display: 'flex', alignItems: 'center', width:'100%', backgroundColor:'white' }}>
+    <Menu theme='light' mode='horizontal' defaultSelectedKeys={['DienstplanBw']} style={{ flex: 1, minWidth: 0 }}>
       {items.map(item => (
         <Menu.Item key={item.key} onClick={item.onClick}>
           {item.label}
