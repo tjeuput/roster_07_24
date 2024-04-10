@@ -1,35 +1,18 @@
 import React, { useState } from 'react';
 import './index.css';
-import {
 
-  TeamOutlined,
-} from '@ant-design/icons';
 import { ConfigProvider, Layout, Menu, Button, theme } from 'antd';
-import type { MenuProps } from 'antd';
-import Bvg from './Components/SideMenu/Icon';
+import SideMenu from './Components/SideMenu/SideMenu';
+import AppHeader from './Components/AppHeader/AppHeader';
+import { Route, Routes } from 'react-router-dom';
+import DienstpA from './Pages/DienspA';
+import DienstpBw from './Pages/DienspBw';
+import EinzelA from './Pages/EinzelA';
+import DienstpHw from './Pages/DienstpHw';
+import EinzelHw from './Pages/EinzelHw';
+import EinzelBw from './Pages/EinzelBw';
 
-const { Header, Sider, Content } = Layout;
-
-type MenuItem = Required<MenuProps>['items'][number];
-
-function getItem(
-  label: React.ReactNode,
-  key: React.Key,
-  icon?: React.ReactNode,
-  children?: MenuItem[],
-  type?: 'group',
-  onClick?: () => void,
-): MenuItem {
-  return {
-    key,
-    icon,
-    children,
-    label,
-    type,
-    onClick,
-  } as MenuItem;
-}
-
+const { Header, Content } = Layout;
 
 
 const App: React.FC = () => {
@@ -38,20 +21,6 @@ const App: React.FC = () => {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
- 
-  const items: MenuItem[] = [
-
-    getItem('BVG Dienstplan', '1', undefined, undefined, undefined, ()=>setCollapsed(!collapsed)),
-  
-    getItem('Verwaltung', 'sub1', <TeamOutlined />, [
-      getItem('Mitarbeiter', '2'),
-      getItem('Bereich', '3'),
-      getItem('Gruppe', '4'),
-      getItem('Schichtart', '5'),
-  
-    ]),
-  
-  ];
   
 
   return (
@@ -61,23 +30,10 @@ const App: React.FC = () => {
       }
     }}>
       <Layout>
-        <Sider trigger={null} collapsible collapsed={collapsed}>
-        <Menu
-        defaultSelectedKeys={['1']}
-        defaultOpenKeys={['sub1']}
-        mode="inline"
-        theme="dark"
-        inlineCollapsed={collapsed}
-        items={items}
-      />
-          
-         
-        </Sider>
+       <SideMenu />
         <Layout>
-          <Header style={{ padding: 0, background: colorBgContainer }}>
-      
-            
-          </Header>
+          <AppHeader />
+          
           <Content
             style={{
               margin: '24px 16px',
@@ -87,8 +43,14 @@ const App: React.FC = () => {
               borderRadius: borderRadiusLG,
             }}
           >
-            Content
-         
+           <Routes>
+                <Route path="/DienstpA" element={<DienstpA />} />
+                <Route path="/DienstpBw" element={<DienstpBw />} />
+                <Route path="/DienstpHw" element={<DienstpHw />} />
+                <Route path="/EinzelA" element={<EinzelA />} />
+                <Route path="/EinzelHw" element={<EinzelHw />} />
+                <Route path="/EinzelBw" element={<EinzelBw />} />
+            </Routes>
           </Content>
 
         </Layout>
