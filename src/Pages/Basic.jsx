@@ -13,7 +13,7 @@ class Basic extends Component{
         super(props);
 
         //let schedulerData = new SchedulerData(new moment("2017-12-18").format(DATE_FORMAT), ViewTypes.Week);
-        const schedulerData = new SchedulerData('2017-12-18', ViewType.Month, false, false, {
+        const schedulerData = new SchedulerData('2017-12-18', ViewType.Year, false, false, {
             dayMaxEvents: 99,
             weekMaxEvents: 9669,
             monthMaxEvents: 9669,
@@ -21,7 +21,10 @@ class Basic extends Component{
             yearMaxEvents: 9956,
             customMaxEvents: 9965,
             eventItemPopoverTrigger: 'click',
-            schedulerContentHeight: '350px',
+            schedulerContentHeight: '600px',
+            schedulerWidth: '85%',
+            yearResourceTableWidth: 80,
+            yearCellWidth: 30,
         });
         // schedulerData.localeMoment.locale('en');
         schedulerData.setSchedulerLocale(dayjsLocale);
