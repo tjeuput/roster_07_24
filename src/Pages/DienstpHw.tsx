@@ -1,11 +1,10 @@
-import { Typography } from 'antd';
+
 import React from 'react';
+import Roster from './Roster';
 
 const DienstpHw: React.FC = () => {
     return (
-        <div>
-            <Typography.Text> DienstpHw </Typography.Text>
-        </div>
+        <Roster />
     );
 };
 

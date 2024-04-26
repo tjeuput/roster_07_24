@@ -8,12 +8,15 @@ import dayjs from "dayjs";
 
 import "react-big-schedule/dist/css/style.css";
 
+const today = new Date();
+const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
 class Basic extends Component{
     constructor(props){
         super(props);
 
         //let schedulerData = new SchedulerData(new moment("2017-12-18").format(DATE_FORMAT), ViewTypes.Week);
-        const schedulerData = new SchedulerData('2017-12-18', ViewType.Year, false, false, {
+        const schedulerData = new SchedulerData(formattedDate, ViewType.Year, false, false, {
             dayMaxEvents: 99,
             weekMaxEvents: 9669,
             monthMaxEvents: 9669,
@@ -23,8 +26,8 @@ class Basic extends Component{
             eventItemPopoverTrigger: 'click',
             schedulerContentHeight: '600px',
             schedulerWidth: '85%',
-            yearResourceTableWidth: 80,
-            yearCellWidth: 30,
+            yearResourceTableWidth: 100,
+            yearCellWidth: 50,
         });
         // schedulerData.localeMoment.locale('en');
         schedulerData.setSchedulerLocale(dayjsLocale);

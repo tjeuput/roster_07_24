@@ -1,21 +1,20 @@
 
-import { DatePicker, Typography, Card, Row, Tabs } from 'antd';
-import { Content } from 'antd/es/layout/layout';
-import React, {Suspense, lazy, useState} from 'react';
-import EinzelauszugATbl from './EinzelATbl';
+import { Tabs } from 'antd';
+import React, {Suspense, useState, useEffect} from 'react';
 import type {TabsProps} from 'antd';
-import Basic from './Basic';
 
 
 
 const DienstpBw: React.FC = () => {
+    
+
     const items: TabsProps['items'] = [
         {
             key: 'Basic',
             label: 'Mitarbeiter',
             children: (
                 <Suspense fallback={<div>Loading...</div>}>
-                  <Basic />
+                  
                 </Suspense>
             )
         },
@@ -34,7 +33,7 @@ const DienstpBw: React.FC = () => {
     return (
         <>
             <Tabs activeKey="Basic" items={items} >
-                
+            
             </Tabs>
   
         </>
