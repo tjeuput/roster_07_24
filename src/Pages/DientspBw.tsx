@@ -1,8 +1,8 @@
 
 import { Tabs } from 'antd';
-import React, {Suspense, useState, useEffect} from 'react';
+import React from 'react';
 import type {TabsProps} from 'antd';
-
+import Basic from './Basic';
 
 
 const DienstpBw: React.FC = () => {
@@ -12,11 +12,7 @@ const DienstpBw: React.FC = () => {
         {
             key: 'Basic',
             label: 'Mitarbeiter',
-            children: (
-                <Suspense fallback={<div>Loading...</div>}>
-                  
-                </Suspense>
-            )
+            children: <Basic/>
         },
         {
             key: 'Schicten',

@@ -1,10 +1,10 @@
 import React, {Component} from 'react'
 import * as dayjsLocale from 'dayjs/locale/de';
 import * as antdLocale from 'antd/locale/de_DE';
-//import moment from 'moment'
-//import 'moment/locale/zh-cn';
-import { Scheduler, SchedulerData, ViewType, DemoData, wrapperFun } from 'react-big-schedule'
-import dayjs from "dayjs";
+
+import { Scheduler, SchedulerData, ViewType,wrapperFun } from 'react-big-schedule'
+import DemoData from './DemoData'
+
 
 import "react-big-schedule/dist/css/style.css";
 

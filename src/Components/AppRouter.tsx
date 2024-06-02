@@ -1,9 +1,9 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
-import DienstpA from '../Pages/DienspA';
-import DienstpBw from '../Pages/DienspBw';
+import DienstpA from '../Pages/DientspA';
+import DienstpBw from '../Pages/DientspBw';
 import EinzelA from '../Pages/EinzelA';
-import DienstpHw from '../Pages/DienstpHw';
+import DienstpHw from '../Pages/DientspHw';
 import EinzelHw from '../Pages/EinzelHw';
 import EinzelBw from '../Pages/EinzelBw';
 
