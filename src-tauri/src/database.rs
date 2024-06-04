@@ -160,7 +160,8 @@ pub fn get_table_schedule(db: &Connection) ->  Result<String, rusqlite::Error>{
   JOIN
       TB_SESSION_COLOR sc on ss.session_id = sc.session_id
   ORDER BY 
-      id_group, s.date_id ASC;")?;
+      id_group, s.date_id ASC
+      ;")?;
 
       let db_results = stmt.query_map([], |row| {
           Ok(db_result_tb_dienstplan {

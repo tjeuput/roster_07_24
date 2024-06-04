@@ -1,9 +1,9 @@
 import React, {Component} from 'react'
 import * as dayjsLocale from 'dayjs/locale/de';
 import * as antdLocale from 'antd/locale/de_DE';
-
+import { invoke } from '@tauri-apps/api/tauri';
 import { Scheduler, SchedulerData, ViewType,wrapperFun } from 'react-big-schedule'
-import DemoData from './DemoData'
+
 
 
 import "react-big-schedule/dist/css/style.css";
@@ -32,12 +32,35 @@ class Basic extends Component{
         // schedulerData.localeMoment.locale('en');
         schedulerData.setSchedulerLocale(dayjsLocale);
         schedulerData.setCalendarPopoverLocale(antdLocale);
-        schedulerData.setResources(DemoData.resources);
-        schedulerData.setEvents(DemoData.events);
+
         this.state = {
-            viewModel: schedulerData
+            viewModel: schedulerData,
+            resources: [],
+            events: []
         }
     }
+
+    componentDidMount() {
+      this.fetchData();
+    }
+
+    fetchData = async () => {
+      try {
+          const response = await invoke("get_table_schedule");
+          const data = JSON.parse(response);
+          if (Array.isArray(data.resources) && Array.isArray(data.events)) {
+              const { viewModel } = this.state;
+              viewModel.setResources(data.resources);
+              viewModel.setEvents(data.events);
+  
+              this.setState({ viewModel });
+          } else {
+              throw new Error("Invalid response format");
+          }
+      } catch (error) {
+          console.error("Error fetching data: ", error);
+      }
+  }
 
     render(){
         const {viewModel} = this.state;
@@ -71,7 +94,7 @@ class Basic extends Component{
 
     prevClick = (schedulerData)=> {
         schedulerData.prev();
-        schedulerData.setEvents(DemoData.events);
+        schedulerData.setEvents(this.state.events);
         this.setState({
             viewModel: schedulerData
         })
@@ -79,7 +102,7 @@ class Basic extends Component{
 
     nextClick = (schedulerData)=> {
         schedulerData.next();
-        schedulerData.setEvents(DemoData.events);
+        schedulerData.setEvents(this.state.events);
         this.setState({
             viewModel: schedulerData
         })
@@ -87,7 +110,7 @@ class Basic extends Component{
 
     onViewChange = (schedulerData, view) => {
         schedulerData.setViewType(view.viewType, view.showAgenda, view.isEventPerspective);
-        schedulerData.setEvents(DemoData.events);
+        schedulerData.setEvents(this.state.events);
         this.setState({
             viewModel: schedulerData
         })
@@ -95,7 +118,7 @@ class Basic extends Component{
 
     onSelectDate = (schedulerData, date) => {
         schedulerData.setDate(date);
-        schedulerData.setEvents(DemoData.events);
+        schedulerData.setEvents(this.state.events);
         this.setState({
             viewModel: schedulerData
         })
@@ -165,7 +188,7 @@ class Basic extends Component{
       onScrollRight = (schedulerData, schedulerContent, maxScrollLeft) => {
         if (schedulerData.ViewTypes === ViewType.Day) {
           schedulerData.next();
-          schedulerData.setEvents(DemoData.events);
+          schedulerData.setEvents(this.state.events);
           this.setState({
             viewModel: schedulerData,
           });
@@ -177,7 +200,7 @@ class Basic extends Component{
       onScrollLeft = (schedulerData, schedulerContent, maxScrollLeft) => {
         if (schedulerData.ViewTypes === ViewType.Day) {
           schedulerData.prev();
-          schedulerData.setEvents(DemoData.events);
+          schedulerData.setEvents(this.state.events);
           this.setState({
             viewModel: schedulerData,
           });

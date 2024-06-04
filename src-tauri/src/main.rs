@@ -32,7 +32,7 @@ fn get_table_schedule(app_handle: AppHandle) -> String {
 match app_handle.db(|db| database::get_table_schedule(db)) {
     Ok(json_string) => {
         info!("Retrieved items: {}", json_string); // Log the retrieved items
-        format!("Your name log: {}", json_string)
+        json_string
     },
     Err(e) => {
         eprintln!("Failed to fetch data from the database: {}", e);
