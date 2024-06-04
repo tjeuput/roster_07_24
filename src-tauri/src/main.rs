@@ -4,21 +4,15 @@ mod database;
 mod state; /*why mod */
 //mod commands;
 
+
 use state::{ServiceAccess, AppState};
 use tauri::{AppHandle, Manager};
 use log::info;
 
+
 #[tauri::command]
 fn greet(app_handle: AppHandle) -> String {
-    // Should handle errors instead of unwrapping here
-    /* 
 
-    let items = app_handle.db(|db| database::get_all(db)).unwrap();
-
-    let items_string = items.join(" | ");
-
-    format!("Your name log: {}", items_string)
-} */
 match app_handle.db(|db| database::get_all(db)) {
     Ok(items) => {
         let items_string = items.join(" | ");
@@ -31,6 +25,23 @@ match app_handle.db(|db| database::get_all(db)) {
     }
 }
 }
+
+#[tauri::command]
+fn get_table_schedule(app_handle: AppHandle) -> String {
+
+match app_handle.db(|db| database::get_table_schedule(db)) {
+    Ok(json_string) => {
+        info!("Retrieved items: {}", json_string); // Log the retrieved items
+        format!("Your name log: {}", json_string)
+    },
+    Err(e) => {
+        eprintln!("Failed to fetch data from the database: {}", e);
+        format!("Error: {}", e)
+    }
+}
+}
+
+
 fn main() {
     env_logger::init();
     tauri::Builder::default()
@@ -42,7 +53,7 @@ fn main() {
             });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![greet, get_table_schedule])
         .run(tauri::generate_context!())
         .expect("Error while running application");
 }

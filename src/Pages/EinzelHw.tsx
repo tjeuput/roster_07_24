@@ -3,24 +3,24 @@ import { invoke } from '@tauri-apps/api/tauri';
 
 const EinzelHw: React.FC = () => {
     
-    const [message, setMessage] = useState('');
+    const [schedule, setSchedule] = useState('');
 useEffect(() => {
-  const fetchGreeting = async () => {
+  const fetchSchedule = async () => {
     try {
-      const response = await invoke<string>("greet");
-      setMessage(response);
+      const response = await invoke<string>("get_table_schedule");
+      setSchedule(response);
     } catch (error) {
       console.error(error);
-      setMessage("Error occurred while fetching names");
+      setSchedule("Error occurred while fetching names");
     }
   };
-  fetchGreeting();
+  fetchSchedule();
 }, []);
 
     return (
         <div>
-           <h1>Employee Names</h1>
-            <div id="greet-msg">{message}</div>
+           <h1>Employee Schedule</h1>
+            <div id="schedule-msg">{schedule}</div>
         </div>
     );
 };
