@@ -48,11 +48,11 @@ pub struct MitarbeiterSchichtplan{
 
 
 #[tauri::command]
-pub fn get_table_schedule() ->  Result<String, rusqlite::Error>{
+pub fn get_table_schedule(db: &DbConnection, offset: usize, limit: usize) ->  Result<String, rusqlite::Error>{
 
     let conn = create_connection().map_err(|e| InvokeError::new(&e.to_string()))?;
 
-    let mut stmt = conn.prepare("
+    let sql = format!("
     SELECT 
         b.id_Bereich, 
         b.Bereichsabkuerzung, 
@@ -81,9 +81,13 @@ pub fn get_table_schedule() ->  Result<String, rusqlite::Error>{
     JOIN
         TB_SESSION_COLOR sc on ss.session_id = sc.session_id
     ORDER BY 
-        s.date_id ASC;").map_err(|e|ErrMsg::new(&format!("Failed to prepare statement:{}", e)))?;
+        s.date_id ASC
+    LIMIT ?
+    OFFSET ?;", 
+    offset, limit);
+    let mut stmt = conn.prepare(&sql).map_err(|e| ErrMsg::new(&format!("Failed to prepare statement: {}", e)))?;
 
-        let db_results = stmt.query_map([], |row| {
+    let db_results = stmt.query_map(rusqlite::params![limit,offset], |row| {
             Ok(db_result_tb_dienstplan {
                 id_bereich: row.get(0)?,
                 bereichabkuerzung: row.get(1)?,

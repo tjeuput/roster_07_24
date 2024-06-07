@@ -1,0 +1,33 @@
+#timeline-container{
+    display: grid;
+    grid-template-columns: 100px repeat(12, 3fr);
+    outline: 0.25px solid gray;
+    overflow-x: auto; 
+    
+}
+
+/*Make row resource stays on the*/
+.timeline-row-resource{
+    background-color:whitesmoke;
+    color:rgba(0, 0, 0, 0.726);
+    outline: 0.251px solid gray;
+    text-align: center;
+    position:sticky;
+    left: 0;
+    z-index: 1;
+   
+}
+
+.timeline-row-period{
+    display: grid;
+    grid-auto-flow:column;
+    grid-auto-columns: minmax(20px, 1fr);
+    background-color: whitesmoke;
+    color:rgba(0, 0, 0, 0.726);
+    outline: 0.25px solid gray;
+    text-align: center;
+    border-width: thin;
+
+}
+
+

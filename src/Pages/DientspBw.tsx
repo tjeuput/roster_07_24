@@ -2,7 +2,7 @@
 import { Tabs } from 'antd';
 import React from 'react';
 import type {TabsProps} from 'antd';
-import Basic from './Basic';
+import  TimelineComponent  from '../Components/Timeline/Timeline';
 
 
 const DienstpBw: React.FC = () => {
@@ -12,7 +12,7 @@ const DienstpBw: React.FC = () => {
         {
             key: 'Basic',
             label: 'Mitarbeiter',
-            children: <Basic/>
+            children: <TimelineComponent/>
         },
         {
             key: 'Schicten',
