@@ -21,7 +21,7 @@
 .timeline-row-period{
     display: grid;
     grid-auto-flow:column;
-    grid-auto-columns: minmax(20px, 1fr);
+    grid-auto-columns: minmax(40px, 1fr);
     background-color: whitesmoke;
     color:rgba(0, 0, 0, 0.726);
     outline: 0.25px solid gray;
@@ -30,4 +30,10 @@
 
 }
 
+.hidden {
+    display: none !important; 
+}
 
+.d-0, .d-6{
+background-color: rgba(172, 172, 172, 0.932);
+}

@@ -15,7 +15,7 @@ export default defineConfig(async () => ({
     strictPort: true,
     watch: {
       // 3. tell vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**", "**/dist/**", "**/node_modules/**"],
+      ignored: ["**/src-tauri/**", "**/dist/**", "**/node_modules/**", "src-tauri/ResourcesDb.db-shm", "src-tauri/ResourcesDb.db-wal"],
       
     },
   },

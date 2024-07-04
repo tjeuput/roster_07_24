@@ -1,8 +1,13 @@
 
-import { Tabs } from 'antd';
+import { Tabs, Space, Card } from 'antd';
 import React from 'react';
 import type {TabsProps} from 'antd';
-import  TimelineComponent  from '../Components/Timeline/Timeline';
+import  TimelineContainer  from '../Components/Timeline/TimelineContainer';
+import { Content } from 'antd/es/layout/layout';
+import Basic from './Basic';
+import ScheduleTbl from '../Components/ScheduleTable/ScheduleTbl';
+
+
 
 
 const DienstpBw: React.FC = () => {
@@ -10,27 +15,42 @@ const DienstpBw: React.FC = () => {
 
     const items: TabsProps['items'] = [
         {
-            key: 'Basic',
-            label: 'Mitarbeiter',
-            children: <TimelineComponent/>
+            key: 'Schichten',
+            label: 'Schichten',
+            children: <TimelineContainer />
         },
         {
-            key: 'Schicten',
-            label: 'Schichten',
-            children: 'Content of Schicten Statistik',
+            key: 'Big Scheduler',
+            label: 'Big Scheduler',
+            children: <Basic/>,
         },
         {
             key: 'Produktiv Bw',
             label: 'Produktiv Bw',
-            children: 'Content of Produktiv Bw',
+            children: <ScheduleTbl/>,
         },
     ];
     
     return (
         <>
-            <Tabs activeKey="Basic" items={items} >
+            <Space direction="vertical" style={{ width: '100%' }}>
+                <Content style={{margin: '8px 8px',
+                    padding: 8,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    display: 'flex',
+                }}>
+                    <Card  style={{width: '100%', maxWidth:'100%', overflow:'hidden'}}>
+                        <Tabs defaultActiveKey='Basic' items={items}>
+                        </Tabs>
+
+                    </Card>
+
+                </Content>
+                
             
-            </Tabs>
+            
+            </Space>
   
         </>
     );

@@ -8,7 +8,7 @@ type CalendarState = {
 };
 
 class EinzelauszugATbl extends React.Component<{}, CalendarState> {
-    constructor(props: {}) {
+    constructor(props: {object}) {
     super(props);
     this.state = {
       months: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'November', 'Dezember'],
