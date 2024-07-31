@@ -1,31 +1,54 @@
 import { Column } from 'react-table';
-import {Months} from './Months';
+import {Months, Days} from './helper';
 
+interface DayData{
+  date: string;
+  dayOfWeek: string;
+}
 
-
-interface FlexibleDataItem {
-  [key: string]: string;
+type TableData = {
+  [key: string]: DayData | string;
+  year: string;
+  employee: string;
+  'hemployee': string;
 }
 
 
-const generateHeader = (): Column<FlexibleDataItem>[] => {
-  let prevValue = 1;
-  
-  return Months.map((month) => {
-    const header = month.name;
-    const accessor = `col${prevValue}`;
-    
-    prevValue += month.days;
+const HeaderItem = (): Column<TableData>[] => {
+  return Months.map((month, monthIndex)=>{
+    if(monthIndex === 0){
+        return {
+        Header: `${month.name}`,
+        accessor: 'year',
+        columns:[
+            {Header : "", accessor: "employee",
+                columns: [
+                    {Header: "", accessor: "hemployee"},
+                    {Header:"", accessor:"hemployee2"}
+                ]
+            }],
 
-    return { 
-      Header: header,
-      accessor: accessor
-    };
-  });
-};
+        }
+    } else {
+        return {
+            Header: `${month.name}`,
+            accessor: `Month${monthIndex}`,
+            columns: Array.from({length: month.days}, (_, indexDay) =>{
+                const dayOfWeek = (month.start + indexDay) % 7;
+                return {
+                    Header: Days[dayOfWeek],
+                    accessor: `${month.name.toLowerCase()}-${indexDay + 1}`,
+                    columns: [
+                        {Header: `${indexDay + 1}.${monthIndex}`,
+                        accessor: `d-${indexDay + 1}-${monthIndex}`}
+                    ]
+                } 
+            })
+        }
+    }
+})
 
-const HeaderItem = (): Column<FlexibleDataItem>[] => {
-  return generateHeader();
-};
+}
+ 
 
 export default HeaderItem;

@@ -15,63 +15,15 @@ pub fn create_connection() -> Result<Connection>{
 }
 the encrypted db has to be integrated later because currently I copy paste what is in tauri-sqlite repo
 */
-use rusqlite::{Connection};
+use rusqlite::{Connection, Result};
 use tauri::AppHandle;
 use std::fs;
-use std::collections::HashMap;
 use serde::{Serialize,Deserialize};
 
-#[derive(Serialize,Deserialize)]
-struct db_result_tb_dienstplan{
-  id_bereich: i32,
-    bereichabkuerzung: String,
-    bereichsname: String,
-    name: String,
-    schedule_id: i32,
-    id_employee: i32,
-    date_id: i32,
-    id_group: i32,
-    session_id: i32,
-    dienst_name: String,
-    start_time: String,
-    end_time: String,
-    color_name: String,
-}
 
-#[derive(Clone, Debug, Serialize)]
-struct Resource{
-  id: String,
-  name: String,
-  title: String,
-  parentId: Option<String>,
-  group_only: bool
-}
 
-#[derive(Clone, Debug, Serialize)]
-struct Event {
-  id: String,
-  start: String,
-  end: String,
-  resourceId: String,
-  title: String,
-  bgColor: String
-}
 
-#[derive(Serialize)]
-pub struct MitarbeiterSchichtplan{
-    pub resources: Vec<Resource>,
-    pub events: Vec<Event>,
-}
 
-struct ErrMsg {
-  message: String,
-}
-
-impl ErrMsg {
-  fn new(message: &str) -> Self {
-      ErrMsg { message: message.to_string() }
-  }
-}
 
 const CURRENT_DB_VERSION: u32 = 1;
 
@@ -81,6 +33,36 @@ pub fn initialize_database(app_handle: &AppHandle) -> Result<Connection, rusqlit
     let app_dir = app_handle.path_resolver().app_data_dir().expect("The app data directory should exist.");
     fs::create_dir_all(&app_dir).expect("The app data directory should be created.");
     let sqlite_path = app_dir.join("MyApp.sqlite");
+
+    /*  store in network drive
+        // Get the network path from an environment variable or use a default
+    let network_path = env::var("MY_APP_DB_PATH")
+        .unwrap_or_else(|_| String::from(r"\\SERVER\Share\MyAppData"));
+    let network_path = PathBuf::from(network_path);
+    
+    // Ensure the directory exists
+    fs::create_dir_all(&network_path).map_err(|e| format!("Failed to create directory: {}", e))?;
+    
+    let sqlite_path = network_path.join("MyApp.sqlite");
+
+    // Attempt to open the database with retry logic
+    let mut attempts = 0;
+    let max_attempts = 3;
+    let mut db = loop {
+        match Connection::open(&sqlite_path) {
+            Ok(conn) => break conn,
+            Err(e) if attempts < max_attempts => {
+                attempts += 1;
+                eprintln!("Failed to connect to database, retrying ({}/{}): {}", attempts, max_attempts, e);
+                std::thread::sleep(std::time::Duration::from_secs(2));
+            }
+            Err(e) => return Err(Box::new(e)),
+        }
+    };
+
+    // ... rest of the function
+
+    Ok(db)*/
 
     let mut db = Connection::open("ResourcesDb.db")?;
 
@@ -115,6 +97,9 @@ pub fn upgrade_database_if_needed(db: &mut Connection, existing_version: u32) ->
   Ok(())
 }
 
+struct items{
+  name: String
+}
 
 pub fn get_all(db: &Connection) -> Result<Vec<String>, rusqlite::Error> {
     let mut statement = db.prepare("SELECT * FROM TB_EMPLOYEE")?;
@@ -129,101 +114,56 @@ pub fn get_all(db: &Connection) -> Result<Vec<String>, rusqlite::Error> {
     Ok(items)
 }
 
+
+#[derive(Serialize,Deserialize)]
+struct db_result_diesntplan {
+  id: i32,
+  name: String,
+  last_name: String,
+  session_names: Vec<String>
+}
+
 pub fn get_table_schedule(db: &Connection) ->  Result<String, rusqlite::Error>{
 
   let mut stmt = db.prepare("
-  SELECT 
-      b.id_Bereich, 
-      b.Bereichsabkuerzung, 
-      b.Bereichsname, 
-      e.name,
-      schedule_id, 
-      e.id_employee, 
-      s.date_id, 
-      e.id_group, 
-      s.session_id, 
-      ss.name as dienst,
-      CAST(dt.date as TEXT) || ' ' || ss.start_time AS start_time,
-      CAST(dt.date as TEXT) || ' ' || ss.end_time AS end_time,
-      sc.color_name
+  SELECT e.id_employee,
+		e.name,
+		e.last_name,
+	   group_concat(ss.name) as session_names
+FROM TB_EMPLOYEE e
+INNER JOIN TB_SCHEDULE sh ON e.id_employee = sh.id_employee
+INNER JOIN TB_SESSION ss ON sh.session_id = ss.session_id
+GROUP BY e.id_employee;")?;
+
+  let db_results: Vec<db_result_diesntplan> = stmt.query_map([], |row| {
+    
+    let id: i32 = row.get("id_employee")?;
+    let name: String = row.get("name")?;
+    let last_name: String = row.get("last_name")?;
+    let session_names_str: String = row.get("session_names")?;
+
+    //Split the comma-separated string into a vector
+    let session_names: Vec<String> = session_names_str
+      .split(",")
+      .map(|s| s.trim().to_string())
+      .collect();
+
+
+    
+    println!("Debug: Raw result - id: {}, last_name: {}, session_names: {:?}", id, last_name, session_names);
+    
+    Ok(db_result_diesntplan {
+        id,
+        name,
+        last_name,
+        session_names,
+    })
+  })?.collect::<Result<_, rusqlite::Error>>()?;
+
+  serde_json::to_string(&db_results)
+        .map_err(|_| rusqlite::Error::ExecuteReturnedResults)
       
-  FROM 
-      TB_SCHEDULE s
-  JOIN 
-      TB_EMPLOYEE e on e.id_employee = s.id_employee
-  JOIN 
-      TB_SESSION ss on ss.session_id = s.session_id
-  JOIN 
-      TB_Bereich b on b.id_Bereich = e.id_group
-  LEFT JOIN 
-      TB_DATE dt on dt.date_id = s.date_id
-  JOIN
-      TB_SESSION_COLOR sc on ss.session_id = sc.session_id
-  ORDER BY 
-      id_group, s.date_id ASC
-      ;")?;
-
-      let db_results = stmt.query_map([], |row| {
-          Ok(db_result_tb_dienstplan {
-              id_bereich: row.get(0)?,
-              bereichabkuerzung: row.get(1)?,
-              bereichsname: row.get(2)?,
-              name: row.get(3)?,
-              schedule_id: row.get(4)?,
-              id_employee: row.get(5)?,
-              date_id: row.get(6)?,
-              id_group: row.get(7)?,
-              session_id: row.get(8)?,
-              dienst_name: row.get(9)?,
-              start_time: row.get(10)?,
-              end_time: row.get(11)?,
-              color_name: row.get(12)?,
-          })
-      })?;
-  
-      let mut resources: Vec<Resource> = Vec::new();
-      let mut groups: HashMap<i32, String> = HashMap::new();  // To store group names with Bereich ID as key
-      let mut events: Vec<Event> = Vec::new();
-  
-      for result in db_results {
-          let data = result?;
-          if !groups.contains_key(&data.id_bereich) {
-              groups.insert(data.id_bereich, data.bereichsname.clone());
-              resources.push(Resource {
-                  id: format!("group{}", data.id_bereich),
-                  name: data.bereichsname.clone(),
-                  title: data.bereichsname,
-                  parentId: None,
-                  group_only: true,
-              });
-          }
-          resources.push(Resource {
-              id: data.id_employee.to_string(),
-              name: data.name.clone(),
-              title: data.name,
-              parentId: Some(format!("group{}", data.id_bereich)),
-              group_only: false,
-          });
-          events.push(Event {
-              id: data.schedule_id.to_string(),
-              start: data.start_time.clone(),
-              end: data.end_time.clone(),
-              resourceId: data.id_employee.to_string(),
-              title: data.dienst_name.clone(),
-              bgColor: data.color_name.clone(),
-          });
-      }
-  
-      let schichtplan = MitarbeiterSchichtplan {
-          resources,
-          events,
-      };
-
-      let json_string = match serde_json::to_string(&schichtplan) {
-        Ok(json) => json,
-        Err(e) => return Err(rusqlite::Error::ToSqlConversionFailure(Box::new(e))),
-    };
-
-      Ok(json_string)
-  
   }
+
+
+

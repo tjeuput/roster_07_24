@@ -1,5 +1,6 @@
+//unused
 import React from 'react';
-import {Month, Days} from './Months';
+import {Months, Days} from './helper';
 
 
 export const renderMonthDays = (months: Month[]) : React.ReactElement[] => {

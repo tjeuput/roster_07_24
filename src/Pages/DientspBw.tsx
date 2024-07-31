@@ -2,9 +2,9 @@
 import { Tabs, Space, Card } from 'antd';
 import React from 'react';
 import type {TabsProps} from 'antd';
-import  TimelineContainer  from '../Components/Timeline/TimelineContainer';
+
 import { Content } from 'antd/es/layout/layout';
-import Basic from './Basic';
+
 import ScheduleTbl from '../Components/ScheduleTable/ScheduleTbl';
 
 
@@ -17,17 +17,17 @@ const DienstpBw: React.FC = () => {
         {
             key: 'Schichten',
             label: 'Schichten',
-            children: <TimelineContainer />
+            children: <ScheduleTbl/>,
         },
         {
             key: 'Big Scheduler',
             label: 'Big Scheduler',
-            children: <Basic/>,
+            children: ''
         },
         {
             key: 'Produktiv Bw',
             label: 'Produktiv Bw',
-            children: <ScheduleTbl/>,
+            children: ''
         },
     ];
     
@@ -43,11 +43,17 @@ const DienstpBw: React.FC = () => {
                     <Card  style={{width: '100%', maxWidth:'100%', overflow:'hidden'}}>
                         <Tabs defaultActiveKey='Basic' items={items}>
                         </Tabs>
+                        <ScheduleTbl/>
 
                     </Card>
 
+                   
+
+                   
+
                 </Content>
                 
+              
             
             
             </Space>
