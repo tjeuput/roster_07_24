@@ -1,13 +1,14 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-/* where to use this  use crate::commands::get_table_schedule; */
-mod database;
-mod state; /*why mod */
-//mod commands;
 
-
-use state::{ServiceAccess, AppState};
-use tauri::{AppHandle, Manager};
+mod database; //v
+mod state; 
+use std::thread;
+use state::{ServiceAccess, AppState}; //v
+use tauri::{AppHandle, Manager}; //v
 use log::info;
+use std::sync::Arc;
+use chrono::Utc;
+use crate::database::update_schedule;
 
 
 #[tauri::command]
@@ -43,14 +44,46 @@ match app_handle.db(|db| database::get_table_schedule(db)) {
 
 
 fn main() {
+
     env_logger::init();
     tauri::Builder::default()
         .setup(|app| {
-            let app_handle = app.handle();
+            let app_handle = Arc::new(app.handle());
+            
+            // Initialize database
             let db = database::initialize_database(&app_handle).expect("Failed to initialize database");
+            
+            // Manage AppState
             app.manage(AppState {
                 db: std::sync::Mutex::new(Some(db)),
             });
+
+            let app_handle_clone = Arc::clone(&app_handle);
+
+            // Run update_schedule immediately
+            if let Err(e) = update_schedule(&app_handle_clone) {
+                eprintln!("Error updating schedule on startup: {:?}", e);
+            }
+
+            // Run the update_schedule in a separate thread
+            thread::spawn(move || {
+                loop {
+                    // Sleep until the next 1 AM
+                    let now = Utc::now();
+                    let next_run = (now + chrono::Duration::days(1))
+                        .date()
+                        .and_hms_opt(1, 0, 0)
+                        .unwrap();
+                    let duration_until_next_run = next_run - now;
+                    thread::sleep(duration_until_next_run.to_std().unwrap());
+
+                    // Run the update_schedule function
+                    if let Err(e) = update_schedule(&app_handle_clone) {
+                        eprintln!("Error updating schedule: {:?}", e);
+                    }
+                }
+            });
+           
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![greet, get_table_schedule])
