@@ -4,8 +4,11 @@ import './ScheduleTblAnt.css';
 
 
 
+
 const MonthsHeader = () => {
+  let currentDay = 0;
   return Months.map((month, index) => {
+ 
     if (index === 0) {
       return {
         title: `${month.name}`,
@@ -60,11 +63,14 @@ const MonthsHeader = () => {
       } 
     } else {
       return {
+        
         title: `${month.name}`,
         children: Array.from({ length: month.days }, (_, indexDay) => {
           const dayOfWeek = (month.start + indexDay) % 7;
+          currentDay = currentDay + 1;
           return {
             title: Days[dayOfWeek],
+            
             dataIndex: `${month.name.toLowerCase()}-${indexDay + 1}`,
             key: `${month.name.toLowerCase()}-${indexDay + 1}`,
             className: dayOfWeek=== 5 || dayOfWeek === 6 ? 'weekend-cell':undefined,
@@ -72,7 +78,7 @@ const MonthsHeader = () => {
             children: [
               {
                 title: `${indexDay + 1}.${index + 1}`,
-                dataIndex: `d-${indexDay + 1}-${index + 1}`,
+                dataIndex: `${currentDay}`,
                 className: dayOfWeek === 5 || dayOfWeek === 6 ? 'weekend-cell' : undefined,
                 width: 50
 

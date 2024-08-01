@@ -40,4 +40,4 @@ export const Months: Month[] = [
     { name: 'Dezember', start: 0, days: 31 }
   ];
 
-export const Days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+export const Days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];

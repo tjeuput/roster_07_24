@@ -1,6 +1,6 @@
 
   
 .weekend-cell {
-    background-color: rgb(218, 218, 218) !important; /* Slightly lighter gray for weekend cells */
-    color: rgb(233, 142, 142) !important;
+    background-color: #fff4f4 !important; /* Slightly lighter gray for weekend cells */
+    color: red !important;
   }
