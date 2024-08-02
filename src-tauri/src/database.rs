@@ -24,7 +24,7 @@ use serde::{Serialize,Deserialize};
 use chrono::{Local, NaiveDate, Datelike};
 use std::collections::HashMap;
 use std::sync::Arc;
-use log::{info, error};
+use log::info;
 
 const CURRENT_DB_VERSION: u32 = 1;
 
@@ -98,9 +98,6 @@ pub fn upgrade_database_if_needed(db: &mut Connection, existing_version: u32) ->
   Ok(())
 }
 
-struct items{
-  name: String
-}
 
 pub fn get_all(db: &Connection) -> Result<Vec<String>, rusqlite::Error> {
     let mut statement = db.prepare("SELECT * FROM TB_EMPLOYEE")?;
@@ -121,7 +118,8 @@ struct db_result_diesntplan {
   id: i32,
   name: String,
   last_name: String,
-  session_names: Vec<String>,
+  sessions_planned: Vec<String>,
+  sessions_updated: Vec<String>,
   rest_2023: i32,
   rum_rest: i32,
   year_holiday: i32,
@@ -132,11 +130,11 @@ pub fn get_table_schedule(db: &Connection) ->  Result<String, rusqlite::Error>{
 
   let mut stmt = db.prepare("
   WITH employees_data AS (
-	SELECT 
+    SELECT 
         e.id_employee,
         e.name,
         e.last_name,
-        GROUP_CONCAT(ss.name) AS session_names,
+        GROUP_CONCAT(ss.name) AS sessions_planned,
         (
             SELECT COUNT(
                 CASE
@@ -151,49 +149,53 @@ pub fn get_table_schedule(db: &Connection) ->  Result<String, rusqlite::Error>{
             WHERE yh.id_employee = e.id_employee AND yh.year = 2023
         ) AS rest_2023,
         (
-         SELECT COUNT(
-                  CASE
-                      WHEN (sh_2024.updated_session_id IS NULL OR sh_2024.updated_session_id = '')
-                          AND sh_2024.session_id = 8 THEN 1
-                      WHEN sh_2024.updated_session_id = '8' THEN 1
-                      ELSE NULL 
-             END
-        ) AS rum
-        FROM TB_SCHEDULE_2024 sh_2024
-        WHERE sh_2024.id_employee = e.id_employee
+            SELECT GROUP_CONCAT(COALESCE(TB_SESSION.name, ''))
+			FROM TB_SCHEDULE_2024
+			LEFT JOIN TB_SESSION ON TB_SCHEDULE_2024.updated_session_id = TB_SESSION.session_id
+			WHERE TB_SCHEDULE_2024.id_employee = e.id_employee
+        ) AS sessions_updated,
+        (
+            SELECT COUNT(
+                CASE
+                    WHEN (sh_2024.updated_session_id IS NULL OR sh_2024.updated_session_id = '')
+                        AND sh_2024.session_id = 8 THEN 1
+                    WHEN sh_2024.updated_session_id = '8' THEN 1
+                    ELSE NULL 
+                END
+            ) AS rum
+            FROM TB_SCHEDULE_2024 sh_2024
+            WHERE sh_2024.id_employee = e.id_employee
         ) as rum,
-		year_holiday,
-		COUNT(
-			CASE WHEN (sh.updated_session_id IS NULL OR sh.updated_session_id = '')
-				AND sh.session_id = 6 THEN 1
-				ELSE NULL
-			END) as um_plan	
+        yh.year_holiday,
+        COUNT(
+            CASE WHEN (sh.updated_session_id IS NULL OR sh.updated_session_id = '')
+                AND sh.session_id = 6 THEN 1
+                ELSE NULL
+            END) as um_plan	
     FROM TB_EMPLOYEE e
     INNER JOIN TB_SCHEDULE_2024 sh ON e.id_employee = sh.id_employee
     INNER JOIN TB_SESSION ss ON sh.session_id = ss.session_id
-	INNER JOIN TB_YEAR_HOLIDAY yh on yh.id_employee = e.id_employee
-	WHERE year = 2024
-    GROUP BY e.id_employee
+    INNER JOIN TB_YEAR_HOLIDAY yh ON yh.id_employee = e.id_employee AND yh.year = 2024
+    GROUP BY e.id_employee, e.name, e.last_name, yh.year_holiday
 )
-
 SELECT id_employee,
-name,
-last_name,
-session_names,
-rest_2023,
-(rest_2023 - rum) rum_rest,
-year_holiday,
-um_plan
-FROM employees_data
-
-;")?;
+    name,
+    last_name,
+    sessions_planned,
+    sessions_updated,
+    rest_2023,
+    (rest_2023 - rum) AS rum_rest,
+    year_holiday,
+    um_plan
+FROM employees_data;")?;
 
   let db_results: Vec<db_result_diesntplan> = stmt.query_map([], |row| {
     
     let id: i32 = row.get("id_employee")?;
     let name: String = row.get("name")?;
     let last_name: String = row.get("last_name")?;
-    let session_names_str: String = row.get("session_names")?;
+    let sessions_planned: String = row.get("sessions_planned")?;
+    let sessions_updated: String = row.get("sessions_updated")?;
     let rest_2023: i32 = row.get("rest_2023")?;
     let rum_rest:i32 = row.get("rum_rest")?;
     let year_holiday:i32 = row.get("year_holiday")?;
@@ -201,18 +203,24 @@ FROM employees_data
     
 
     //Split the comma-separated string into a vector
-    let session_names: Vec<String> = session_names_str
+    let sessions_planned: Vec<String> = sessions_planned
       .split(",")
       .map(|s| s.trim().to_string())
       .collect();
 
-    println!("Debug: Raw result - id: {}, last_name: {}, session_names: {:?}", id, last_name, session_names);
+    let sessions_updated: Vec<String> = sessions_updated
+    .split(",")
+    .map(|s| s.trim().to_string())
+    .collect();
+
+    println!("Debug: Raw result - id: {}, name: {:?}, last_name: {}, sessions_planned: {:?}, sessions_updated: {:?}", id, name, last_name, sessions_planned, sessions_updated);
     
     Ok(db_result_diesntplan {
         id,
         name,
         last_name,
-        session_names,
+        sessions_planned,
+        sessions_updated,
         rest_2023,
         rum_rest,
         year_holiday,

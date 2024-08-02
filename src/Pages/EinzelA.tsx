@@ -1,56 +1,90 @@
-import React from 'react';
+import React, { useState, useEffect }  from 'react';
 import {  Table, Space } from 'antd';
 import { Content } from 'antd/es/layout/layout';
 import MonthsHeader from '../Components/ScheduleTable/ScheduleTblAnt';
+import { invoke } from '@tauri-apps/api/tauri';
 
 
 
-interface EmployeeData {
+
+interface Employee {
+  rest_2023?: number;
+  rum_rest?: number;
+  name?: string;
+  sessions_planned?: string[];
+  year_holiday?: number;
+  um_planned?: number;
+  last_name?: string;
+  sessions_updated?: string[];
+}
+
+interface MappedEmployee {
   key: number;
   rest: number;
   restUm: number;
   name: string;
-  "1": string;
-  "2": string;
-  "3": string;
-  "4": string;
-  "5": string;
-
-  // Add other fields as necessary
+  [key: string]: number | string;
 }
 
 const EinzelA: React.FC = () => {
   const columns = MonthsHeader();
   console.log("months header is", MonthsHeader());
 
-  const data: EmployeeData[] = [];
+  const [schedule, setSchedule] = useState<MappedEmployee[]>([]);
 
-  data.push({
-    key: 1,
-    rest: 30,
-  restUm: 30,
-  name: "Ranger",
-  "1":'fr',
-  "2":"fr",
-  "3":"fr",
-  "4":"fr",
-  "5":"1"
-  },{
-  key: 2,
-    rest: 30,
-  restUm: 30,
-  name: "Ranger",
-  "1":'fr 1',
-  "2":"fr 2",
-  "3":"fr",
-  "4":"fr",
-  "5":"4"}
-);
+  const [loading, setLoading] = useState(true);
 
+  const fetchSchedule = async () => {
+    try {
+      setLoading(true);
+      const response = await invoke<string>("get_table_schedule");
+      console.log("Debug: Received response:", response);
 
+      const parsedResponse: Employee[] = JSON.parse(response);
 
   
-  
+
+      const mappedData: MappedEmployee[] = parsedResponse.flatMap((employee, index) => {
+        if (!employee) {
+          console.error(`Employee at index ${index} is undefined`);
+          return [];
+        }
+
+        const baseEmployee: MappedEmployee = {
+          key: index * 2 + 1,
+          rest: employee.rest_2023 ?? 0,
+          restUm: employee.rum_rest ?? 0,
+          name: employee.name ?? 'Unknown',
+        };
+
+        employee.sessions_planned?.forEach((session, idx) => {
+          baseEmployee[`${idx + 1}`] = session;
+        });
+
+        const updatedEmployee: MappedEmployee = {
+          key: index * 2 + 2,
+          rest: employee.year_holiday ?? 0,
+          restUm: employee.um_planned ?? 0,
+          name: employee.last_name ?? 'Unknown',
+        };
+
+        employee.sessions_updated?.forEach((session, idx) => {
+          updatedEmployee[`${idx + 1}`] = session;
+        });
+
+        return [baseEmployee, updatedEmployee];
+      });
+      console.log("Mapped data is:", mappedData);
+      setSchedule(mappedData);
+    } catch (error) {
+      console.error("Error fetching schedule:", error);
+      setSchedule([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
  
 
   return (
@@ -64,7 +98,7 @@ const EinzelA: React.FC = () => {
         overflowX:'auto'
       }}>
     <Table
-      columns={columns} dataSource={data}
+      columns={columns} dataSource={schedule}
       bordered
     size="small"
     scroll={{ x: 'calc(700px + 50%)'}}
