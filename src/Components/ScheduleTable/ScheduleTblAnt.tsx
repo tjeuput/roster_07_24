@@ -18,14 +18,14 @@ const MonthsHeader = () => {
             title: 'Um',
             dataIndex: 'um',
             key: 'um',
-            width: 80,
+            width: 50,
             fixed:'left',
             children: [
               {
                 title: 'Rest',
                 dataIndex: 'rest',
                 key: 'rest',
-                width: 80,
+                width: 50,
                 fixed:'left',
               
               }
@@ -35,14 +35,14 @@ const MonthsHeader = () => {
             title: 'Um Plan',
             dataIndex: 'umPlanned',
             key: 'umPlanned',
-            width: 80,
+            width: 50,
             fixed:'left',
             children: [
               {
                 title: 'Rest Um',
                 dataIndex: 'restUm',
                 key: 'restUm',
-                width: 80,
+                width: 50,
                 fixed:'left',
              
              
@@ -53,7 +53,7 @@ const MonthsHeader = () => {
             title: 'Name',
             dataIndex: 'name',
             key: 'name',
-            width: 80,
+            width: 100,
             fixed:'left',
             
           },
@@ -73,13 +73,13 @@ const MonthsHeader = () => {
             
             dataIndex: `${month.name.toLowerCase()}-${indexDay + 1}`,
             key: `${month.name.toLowerCase()}-${indexDay + 1}`,
-            className: dayOfWeek=== 5 || dayOfWeek === 6 ? 'weekend-cell':undefined,
+            className: dayOfWeek=== 6 || dayOfWeek === 0 ? 'weekend-cell':undefined,
             width: 50,
             children: [
               {
-                title: `${indexDay + 1}.${index + 1}`,
+                title: `${indexDay + 1}.${index}`,
                 dataIndex: `${currentDay}`,
-                className: dayOfWeek === 5 || dayOfWeek === 6 ? 'weekend-cell' : undefined,
+                className: dayOfWeek === 6 || dayOfWeek === 0 ? 'weekend-cell' : undefined,
                 width: 50
 
               }

@@ -1,6 +1,7 @@
 
 import {Layout, Menu} from 'antd';
-import { useNavigate } from 'react-router-dom';
+import {  useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
 
 
 const { Header } = Layout;
@@ -8,8 +9,10 @@ const { Header } = Layout;
 
 const AppHeader = () => {
 
-   
     const navigate = useNavigate();
+    
+    const location = useLocation();
+
 
     const items = [
         { 
@@ -43,6 +46,12 @@ const AppHeader = () => {
             onClick: () => navigate('/EinzelA')
         },
     ];
+
+    useEffect(() => {
+        if (location.pathname === '/') {
+          navigate('/DienstpBw');
+        }
+      }, [location, navigate]);    
 
 return(
     <Header style={{ display: 'flex', alignItems: 'center', width:'100%', backgroundColor:'white' }}>

@@ -28,11 +28,9 @@ const EinzelHw: React.FC = () => {
   const fetchSchedule = async () => {
     try {
       const response = await invoke<string>("get_table_schedule");
-      console.log("Debug: Received response:", response);
+      //console.log("Debug: Received response:", response);
 
       const parsedResponse: Employee[] = JSON.parse(response);
-
-  
 
       const mappedData: MappedEmployee[] = parsedResponse.flatMap((employee, index) => {
         if (!employee) {
@@ -47,20 +45,13 @@ const EinzelHw: React.FC = () => {
           name: employee.name ?? 'Unknown',
         };
 
-        employee.sessions_planned?.forEach((session, idx) => {
-          baseEmployee[`${idx + 1}`] = session;
-        });
-
+       
         const updatedEmployee: MappedEmployee = {
           key: index * 2 + 2,
           rest: employee.year_holiday ?? 0,
           restUm: employee.um_planned ?? 0,
           name: employee.last_name ?? 'Unknown',
         };
-
-        employee.sessions_updated?.forEach((session, idx) => {
-          updatedEmployee[`${idx + 1}`] = session;
-        });
 
         return [baseEmployee, updatedEmployee];
       });

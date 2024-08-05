@@ -11,6 +11,7 @@ use chrono::Utc;
 use crate::database::update_schedule;
 
 
+
 #[tauri::command]
 fn greet(app_handle: AppHandle) -> String {
 
@@ -32,14 +33,42 @@ fn get_table_schedule(app_handle: AppHandle) -> String {
 
 match app_handle.db(|db| database::get_table_schedule(db)) {
     Ok(json_string) => {
-        info!("Retrieved items: {}", json_string); // Log the retrieved items
+        info!("Retrieved table: {}", json_string); // Log the retrieved items
         json_string
     },
     Err(e) => {
-        eprintln!("Failed to fetch data from the database: {}", e);
+        eprintln!("Failed to fetch get table schedule from the database: {}", e);
         format!("Error: {}", e)
     }
 }
+}
+
+#[tauri::command]
+fn get_employees(app_handle: AppHandle)-> String {
+
+    match app_handle.db(|db| database::get_employees(db)) {
+        Ok(json_string) => {
+            info!("Retrieved table: {}", json_string); // Log the retrieved items
+            json_string
+        },
+        Err(e) => {
+            eprintln!("Failed to fetch get employees from the database: {}", e);
+            format!("Error: {}", e)
+        }
+    }
+}
+
+#[tauri::command]
+fn set_employee(employee: database::Employee, state: State<'_, AppState>) -> Result<String, String> {
+    let mut db = state.db.lock().unwrap();
+    if let Some(ref mut conn) = *db {
+        match set_employee(conn, &employee) {
+            Ok(id) => Ok(format!("Employee saved successfully with id: {}", id)),
+            Err(e) => Err(format!("Failed to save employee: {}", e)),
+        }
+    } else {
+        Err("Database connection not available".into())
+    }
 }
 
 
@@ -71,10 +100,12 @@ fn main() {
                     // Sleep until the next 1 AM
                     let now = Utc::now();
                     let next_run = (now + chrono::Duration::days(1))
-                        .date()
+                        .date_naive()
                         .and_hms_opt(1, 0, 0)
                         .unwrap();
-                    let duration_until_next_run = next_run - now;
+
+                    let next_run_utc = next_run.and_utc();
+                    let duration_until_next_run = next_run_utc - now;
                     thread::sleep(duration_until_next_run.to_std().unwrap());
 
                     // Run the update_schedule function
@@ -86,7 +117,7 @@ fn main() {
            
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet, get_table_schedule])
+        .invoke_handler(tauri::generate_handler![greet, get_table_schedule, get_employees, set_employee])
         .run(tauri::generate_context!())
         .expect("Error while running application");
 }

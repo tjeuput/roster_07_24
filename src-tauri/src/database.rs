@@ -33,7 +33,7 @@ const CURRENT_DB_VERSION: u32 = 1;
 pub fn initialize_database(app_handle: &AppHandle) -> Result<Connection, rusqlite::Error> {
     let app_dir = app_handle.path_resolver().app_data_dir().expect("The app data directory should exist.");
     fs::create_dir_all(&app_dir).expect("The app data directory should be created.");
-    let sqlite_path = app_dir.join("MyApp.sqlite");
+   
 
     /*  store in network drive
         // Get the network path from an environment variable or use a default
@@ -113,8 +113,115 @@ pub fn get_all(db: &Connection) -> Result<Vec<String>, rusqlite::Error> {
 }
 
 
+pub struct Employee {
+    id_employee: Option<i32>,
+    employee_number: String,
+    name: String,
+    last_name: String,
+    id_area: i32,
+    id_group: i32,
+    year_holiday: i32,
+}
+
+struct Holiday {
+    id_holiday: i32,
+    id_employee: i32,
+    year_holiday: i32,
+    year: i32
+
+}
+
+struct Area {
+    id_area: i32,
+    name_area: String,
+    abbr_area: String
+}
+
+struct Session {
+    session_id: i32,
+    name: String,
+    start_time: String,
+    end_time: String,
+}
+
+pub fn set_employee(db: &mut Connection, employee: &Employee)->Result<i64, rusqlite::Error> {
+
+
+    let  tx = db.transaction()?;
+
+    tx.execute(
+        "INSERT INTO TB_EMPLOYEE (employee_number, name, last_name, id_area, id_group) VALUES (?1, ?2, ?3, ?4, ?5)",
+        &[&employee.employee_number, &employee.name, &employee.last_name, &employee.id_area.to_string(), &employee.id_group.to_string()],
+    )?;
+
+    let id_employee = tx.last_insert_rowid();
+
+    tx.execute(
+        "INSERT INTO TB_YEAR_HOLIDAY (id_employee, year_holiday, year) VALUES (?1, ?2, ?3)",
+        &[&id_employee.to_string(), &employee.year_holiday.to_string(), "2024"],
+    )?;
+
+    tx.commit()?;
+
+    Ok(id_employee)
+}
 #[derive(Serialize,Deserialize)]
-struct db_result_diesntplan {
+struct DbResultEmployee {
+    employee_number: String,
+    name: String,
+    last_name: String,
+    id_area: i32,
+    id_group: i32,
+    year_holiday: i32
+}
+
+pub fn get_employees(db : &Connection)->Result<String, rusqlite::Error>{
+    let mut stmt = db.prepare("
+    SELECT 
+        e.employee_number, 
+        e.name, 
+        e.last_name,
+        h.year_holiday,
+		e.id_area,
+		e.id_group
+    FROM TB_YEAR_HOLIDAY h
+    LEFT JOIN tb_employee e 
+	    ON e.id_employee = h.id_employee
+	LEFT JOIN TB_AREA a
+		ON e.id_area = a.id_area 
+	LEFT JOIN TB_GROUP g
+		ON e.id_group = g.id_group
+     ")?;
+
+    let db_result: Vec<DbResultEmployee> = stmt.query_map([], |row| {
+        let employee_number: String = row.get("employee_number")?;
+        let name: String = row.get("name")?;
+        let last_name: String = row.get("last_name")?;
+        let id_area: i32 = row.get("id_area")?;
+        let id_group: i32 = row.get("id_group")?;
+        let year_holiday: i32 = row.get("year_holiday")?;
+        
+        println!("Debug: Raw result - employee number: {:?}, name: {:?}, last_name: {:?}, id area: {:?}, id group: {:?}, year holiday: {:?}", 
+                    employee_number, name, last_name, id_area, id_group, year_holiday);
+
+        Ok(DbResultEmployee {
+            employee_number,
+            name,
+            last_name,
+            id_area,
+            id_group,
+            year_holiday
+        })
+    })?.collect::<Result<Vec<_>, _>>()?;
+
+    serde_json::to_string(&db_result)
+        .map_err(|_| rusqlite::Error::ExecuteReturnedResults)
+   
+}
+
+
+#[derive(Serialize,Deserialize)]
+struct DbResultDiesntplan {
   id: i32,
   name: String,
   last_name: String,
@@ -130,12 +237,16 @@ pub fn get_table_schedule(db: &Connection) ->  Result<String, rusqlite::Error>{
 
   let mut stmt = db.prepare("
   WITH employees_data AS (
-    SELECT 
-        e.id_employee,
-        e.name,
-        e.last_name,
-        GROUP_CONCAT(ss.name) AS sessions_planned,
-        (
+     SELECT
+	e.id_employee,
+	e.name,
+	e.last_name,
+    
+    GROUP_CONCAT(ts1.name) AS sessions_planned, 
+
+    GROUP_CONCAT(ts2.name) AS sessions_updated,
+	
+	(
             SELECT COUNT(
                 CASE
                    WHEN (sh_2023.updated_session_id IS NULL OR sh_2023.updated_session_id = '')
@@ -145,16 +256,13 @@ pub fn get_table_schedule(db: &Connection) ->  Result<String, rusqlite::Error>{
                 END
             ) AS rest_2023
             FROM TB_SCHEDULE_2023 sh_2023
-            INNER JOIN TB_YEAR_HOLIDAY yh ON yh.id_employee = sh_2023.id_employee
+            LEFT JOIN TB_YEAR_HOLIDAY yh ON yh.id_employee = sh_2023.id_employee
             WHERE yh.id_employee = e.id_employee AND yh.year = 2023
         ) AS rest_2023,
-        (
-            SELECT GROUP_CONCAT(COALESCE(TB_SESSION.name, ''))
-			FROM TB_SCHEDULE_2024
-			LEFT JOIN TB_SESSION ON TB_SCHEDULE_2024.updated_session_id = TB_SESSION.session_id
-			WHERE TB_SCHEDULE_2024.id_employee = e.id_employee
-        ) AS sessions_updated,
-        (
+		h.year_holiday,
+
+		-- how many rest urlaub is used already
+	(
             SELECT COUNT(
                 CASE
                     WHEN (sh_2024.updated_session_id IS NULL OR sh_2024.updated_session_id = '')
@@ -166,17 +274,30 @@ pub fn get_table_schedule(db: &Connection) ->  Result<String, rusqlite::Error>{
             FROM TB_SCHEDULE_2024 sh_2024
             WHERE sh_2024.id_employee = e.id_employee
         ) as rum,
-        yh.year_holiday,
-        COUNT(
-            CASE WHEN (sh.updated_session_id IS NULL OR sh.updated_session_id = '')
-                AND sh.session_id = 6 THEN 1
+		 COUNT(
+            CASE WHEN (s.updated_session_id IS NULL OR s.updated_session_id = '')
+                AND s.session_id = 6 THEN 1
+				WHEN s.updated_session_id = 6 Then 1
                 ELSE NULL
-            END) as um_plan	
-    FROM TB_EMPLOYEE e
-    INNER JOIN TB_SCHEDULE_2024 sh ON e.id_employee = sh.id_employee
-    INNER JOIN TB_SESSION ss ON sh.session_id = ss.session_id
-    INNER JOIN TB_YEAR_HOLIDAY yh ON yh.id_employee = e.id_employee AND yh.year = 2024
-    GROUP BY e.id_employee, e.name, e.last_name, yh.year_holiday
+            END) as um_plan
+			
+			
+		
+FROM 
+    TB_SCHEDULE_2024 s
+LEFT JOIN 
+    TB_SESSION ts1 ON s.session_id = ts1.session_id
+LEFT JOIN 
+    TB_SESSION ts2 ON s.updated_session_id = ts2.session_id
+
+INNER JOIN 
+	TB_EMPLOYEE e ON s.id_employee = e.id_employee
+	
+INNER JOIN TB_YEAR_HOLIDAY h on s.id_employee = h.id_employee	
+	
+WHERE 
+    h.year= 2024
+GROUP BY s.id_employee
 )
 SELECT id_employee,
     name,
@@ -189,7 +310,7 @@ SELECT id_employee,
     um_plan
 FROM employees_data;")?;
 
-  let db_results: Vec<db_result_diesntplan> = stmt.query_map([], |row| {
+    let db_results: Vec<DbResultDiesntplan> = stmt.query_map([], |row| {
     
     let id: i32 = row.get("id_employee")?;
     let name: String = row.get("name")?;
@@ -215,7 +336,7 @@ FROM employees_data;")?;
 
     println!("Debug: Raw result - id: {}, name: {:?}, last_name: {}, sessions_planned: {:?}, sessions_updated: {:?}", id, name, last_name, sessions_planned, sessions_updated);
     
-    Ok(db_result_diesntplan {
+    Ok(DbResultDiesntplan {
         id,
         name,
         last_name,
@@ -249,7 +370,7 @@ pub fn update_schedule(app_handle: &Arc<tauri::AppHandle>) -> Result<(), Box<dyn
 
       let current_date = Local::now().date_naive();
       let first_day_of_year = NaiveDate::from_ymd_opt(current_date.year(), 1, 1).unwrap();
-      let days_since_start = current_date.signed_duration_since(first_day_of_year).num_days() as i32;
+      let days_since_start = current_date.ordinal() as i32;
 
       // Get the last updated date from settings
       let last_updated: Option<String> = db.query_row(
@@ -320,5 +441,7 @@ pub fn update_schedule(app_handle: &Arc<tauri::AppHandle>) -> Result<(), Box<dyn
       Ok(())
   })
 }
+
+
 
 

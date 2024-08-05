@@ -4,7 +4,16 @@ import { Content } from 'antd/es/layout/layout';
 import MonthsHeader from '../Components/ScheduleTable/ScheduleTblAnt';
 import { invoke } from '@tauri-apps/api/tauri';
 
+interface DataType{
+  key: React.Key,
+  
+  rest:number,
 
+  restUm:number,
+  name: string,
+  1 : string,
+  2: string,
+}
 
 
 interface Employee {
@@ -34,6 +43,38 @@ const EinzelA: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
 
+  useEffect(()=>{
+    fetchSchedule();
+  }, []);
+
+  const data : DataType [] = [];
+
+      data.push({
+        key: 1,
+      
+        rest:30,
+        
+        restUm: 30,
+        name: "myname",
+        1 : "1",
+        2: "1",
+        },
+        {
+          key: 2,
+        restUm: 20,
+        rest:10,
+        
+        name: "myname",
+        1 : "1",
+        2: "1",
+      
+        }
+      
+      
+      
+      
+      )
+
   const fetchSchedule = async () => {
     try {
       setLoading(true);
@@ -41,8 +82,6 @@ const EinzelA: React.FC = () => {
       console.log("Debug: Received response:", response);
 
       const parsedResponse: Employee[] = JSON.parse(response);
-
-  
 
       const mappedData: MappedEmployee[] = parsedResponse.flatMap((employee, index) => {
         if (!employee) {
@@ -84,6 +123,10 @@ const EinzelA: React.FC = () => {
     }
   };
 
+  const getRowClassName = (record: MappedEmployee, index: number) => {
+    return index % 2 ? 'employee-row-bottom' : 'employee-row-top';
+  };
+
 
  
 
@@ -102,6 +145,7 @@ const EinzelA: React.FC = () => {
       bordered
     size="small"
     scroll={{ x: 'calc(700px + 50%)'}}
+    rowClassName={getRowClassName}
     
     /></Content>
     </Space>
