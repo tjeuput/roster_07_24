@@ -1,11 +1,10 @@
 
 import './index.css';
-
+import React from 'react';
 import { ConfigProvider, Layout } from 'antd';
 import SideMenu from './Components/SideMenu/SideMenu';
-import AppHeader from './Components/AppHeader/AppHeader';
-
 import AppRouter from './Components/AppRouter';
+
 
 
 const App: React.FC = () => {
@@ -16,12 +15,11 @@ const App: React.FC = () => {
         Menu: { darkItemSelectedBg: '#F3D324' }
       }
     }}>
-      <Layout>
-       <SideMenu />
+      <Layout style={{ minHeight: '100vh' }}>
+        <SideMenu />
         <Layout>
-          <AppHeader />
+         
           <AppRouter />
-          
         </Layout>
       </Layout>
     </ConfigProvider>

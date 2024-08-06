@@ -3,6 +3,17 @@ import { Table, Input, Button, Popconfirm, Form, Select, InputNumber, Spin } fro
 import { PlusOutlined } from '@ant-design/icons';
 import { invoke } from '@tauri-apps/api/tauri';
 
+interface EditableCellProps {
+  editing: boolean;
+  dataIndex: string;
+  title: string;
+  inputType: 'number' | 'text';
+  record: any; // You can replace 'any' with a more specific type if available
+  index: number;
+  children: React.ReactNode;
+  [key: string]: any; // For any additional props
+}
+
 interface EmployeeForm {
   key: React.Key;
   employee_number: string;
@@ -14,50 +25,72 @@ interface EmployeeForm {
 }
 
 const Mitarbeiterbogen = () => {
+
   const [form] = Form.useForm();
   const [dataSource, setDataSource] = useState<EmployeeForm[]>([]);
   const [editingKey, setEditingKey] = useState<React.Key>('');
   const [loading, setLoading] = useState(true);
+  const [tableHeight, setTableHeight] = useState(400);
+
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 50, total: 0 });
+
+  
 
   const tableRef = useRef<HTMLDivElement>(null);
 
-  const fetchEmployee = async () => {
-    try {
-      const response = await invoke<string>("get_employees");
-
-      if (response.startsWith("Error:")) {
-        throw new Error(response);
+  useEffect(() => {
+    const updateTableHeight = () => {
+      if (tableRef.current) {
+        const windowHeight = window.innerHeight;
+        const tableTop = tableRef.current.getBoundingClientRect().top;
+        setTableHeight(windowHeight - tableTop - 20); // 20px for some bottom margin
       }
+    };
 
-      const parsedResponse: Omit<EmployeeForm, 'key'>[] = JSON.parse(response);
+    updateTableHeight();
+    window.addEventListener('resize', updateTableHeight);
 
-      const employeesWithKeys = parsedResponse.map((e, idx) => ({
+    return () => window.removeEventListener('resize', updateTableHeight);
+  }, []);
+
+  const fetchEmployee = async (page = 1, pageSize = 50) => {
+    try {
+      setLoading(true);
+      const response = await invoke("get_employees", { page, pageSize });
+      console.log("Response is", response);
+  
+      const { employees, total_count } = JSON.parse(response);
+  
+      const employeesWithKeys = employees.map((e, idx) => ({
         ...e,
-        key: idx,
-        employee_number: e.employee_number || '',  // Handle potential null values
+        key: (page - 1) * pageSize + idx,
       }));
-
+      
       setDataSource(employeesWithKeys);
-      console.log(parsedResponse);
+      setPagination(prev => ({ ...prev, current: page, total: total_count }));
+      
     } catch (error) {
-      console.log("Error fetching employee form:", error);
+      console.error("Error fetching employee form:", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (dataSource.length === 0) {
-      fetchEmployee();
-    } else {
-      setLoading(false);
-    }
-  }, []);
+    fetchEmployee(pagination.current, pagination.pageSize);
+  }, [pagination.current, pagination.pageSize]);
 
   const isEditing = (record: EmployeeForm) => record.key === editingKey;
 
-  const edit = (record: Partial<EmployeeForm> & { key: React.Key }) => {
-    form.setFieldsValue({ firstName: '', lastName: '', idEmployee: '', area: '', group: '', yearlyHoliday: 0, ...record });
+  const edit = (record: EmployeeForm) => {
+    form.setFieldsValue({
+      employee_number: record.employee_number,
+      name: record.name,
+      last_name: record.last_name,
+      id_area: record.id_area,
+      id_group: record.id_group,
+      year_holiday: record.year_holiday,
+    });
     setEditingKey(record.key);
   };
 
@@ -67,7 +100,7 @@ const Mitarbeiterbogen = () => {
 
   const save = async (key: React.Key) => {
     try {
-      const row = (await form.validateFields()) as EmployeeForm;
+      const row = await form.validateFields() as EmployeeForm;
       const newData = [...dataSource];
       const index = newData.findIndex((item) => key === item.key);
       if (index > -1) {
@@ -75,39 +108,27 @@ const Mitarbeiterbogen = () => {
         newData.splice(index, 1, { ...item, ...row });
         setDataSource(newData);
         setEditingKey('');
-      } else {
-        newData.push(row);
-        setDataSource(newData);
-        setEditingKey('');
-      }
 
-      // Save the new employee record to the backend
-      await invoke('set_employee', { 
-        employee: {
-          employee_number: row.employee_number,
-          name: row.name,
-          last_name: row.last_name,
-          id_area: row.id_area,
-          id_group: row.id_group,
-          year_holiday: row.year_holiday
-        }
-      });
+        // Save the updated employee record to the backend
+        await invoke('set_employee', {
+          employee: {
+            employee_number: row.employee_number,
+            name: row.name,
+            last_name: row.last_name,
+            id_area: row.id_area,
+            id_group: row.id_group,
+            year_holiday: row.year_holiday
+          }
+        });
+      }
     } catch (errInfo) {
       console.log('Validate Failed:', errInfo);
     }
   };
 
-  const scrollToBottom = () => {
-    if (tableRef.current) {
-      const scrollContainer = tableRef.current.querySelector('.ant-table-body');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
-    }
-  };
 
   const handleAdd = () => {
-    const newKey = dataSource.length ? dataSource[dataSource.length - 1].key + 1 : 1;
+    const newKey = Date.now(); // Use timestamp as a unique key
     const newData: EmployeeForm = {
       key: newKey,
       employee_number: '',
@@ -117,11 +138,7 @@ const Mitarbeiterbogen = () => {
       id_group: 1,
       year_holiday: 0,
     };
-    setDataSource((prevData) => {
-      const newDataSource = [...prevData, newData];
-      setTimeout(() => scrollToBottom(), 0);
-      return newDataSource;
-    });
+    setDataSource(prevData => [newData, ...prevData]);
     edit(newData);
   };
 
@@ -129,11 +146,14 @@ const Mitarbeiterbogen = () => {
     {
       title: 'No',
       dataIndex: 'key',
+      width: 30,
       editable: false,
+      render: (_, __, index) => index + 1 + (pagination.current - 1) * pagination.pageSize,
     },
     {
       title: 'Dienstausweisnummer',
       dataIndex: 'employee_number',
+      width: 40,
       editable: true,
     },
     {
@@ -150,41 +170,43 @@ const Mitarbeiterbogen = () => {
       title: 'Bereich',
       dataIndex: 'id_area',
       editable: true,
-      render: (text: number) => {
-        const areas = { 1: 'BW', 2: 'HW', 3: 'A' };
-        return (
-          <Select defaultValue={areas[text as keyof typeof areas]} style={{ width: 120 }}>
-            {Object.entries(areas).map(([id, name]) => (
-              <Select.Option key={id} value={id}>{name}</Select.Option>
+      render: (text: number, record: EmployeeForm) => {
+        const groups = { 1: 'Yellow', 2: 'Blue', 3: 'Grey' };
+        return isEditing(record) ? (
+          <Select defaultValue={text} style={{ width: 120 }}>
+            {Object.entries(groups).map(([id, name]) => (
+              <Select.Option key={id} value={parseInt(id)}>{name}</Select.Option>
             ))}
           </Select>
-        );
+        ) : groups[text as keyof typeof groups];
       },
     },
     {
       title: 'Gruppe',
       dataIndex: 'id_group',
       editable: true,
-      render: (text: number) => {
+      render: (text: number, record: EmployeeForm) => {
         const groups = { 1: 'Yellow', 2: 'Blue', 3: 'Grey' };
-        return (
+        return isEditing(record) ? (
           <Select defaultValue={groups[text as keyof typeof groups]} style={{ width: 120 }}>
             {Object.entries(groups).map(([id, name]) => (
               <Select.Option key={id} value={id}>{name}</Select.Option>
             ))}
           </Select>
-        );
+        ): groups[text as keyof typeof groups];
       },
     },
     {
       title: 'Jahresurlaub',
       dataIndex: 'year_holiday',
       editable: true,
-      render: (text: number | null) => <InputNumber defaultValue={text || 0} />,
+      render: (text: number | null, record: EmployeeForm) => 
+        isEditing(record) ? <InputNumber defaultValue={text || 0} /> : text,
     },
     {
       title: 'Aktion',
       dataIndex: 'operation',
+      width: 200,
       render: (_: any, record: EmployeeForm) => {
         const editable = isEditing(record);
         return editable ? (
@@ -198,19 +220,21 @@ const Mitarbeiterbogen = () => {
           </span>
         ) : (
           <span>
-            <Button disabled={editingKey !== ''} onClick={() => edit(record)} style={{ marginRight: 8 }}>
+            <Button onClick={() => edit(record)} style={{ marginRight: 8 }}>
               Edit
             </Button>
-            <Popconfirm title="Sicher zu Löschen?" onConfirm={() => setDataSource(dataSource.filter((item) => item.key !== record.key))}>
+            <Popconfirm title="Sicher zu Löschen?" onConfirm={() => handleDelete(record.key)}>
               <Button>Delete</Button>
             </Popconfirm>
           </span>
         );
       },
     },
-  ], [dataSource, editingKey]);
+  ], [dataSource, editingKey,pagination.current, pagination.pageSize]);
 
-  const mergedColumns = useMemo(() => columns.map((col) => {
+ 
+
+  const mergedColumns = columns.map((col) => {
     if (!col.editable) {
       return col;
     }
@@ -218,15 +242,27 @@ const Mitarbeiterbogen = () => {
       ...col,
       onCell: (record: EmployeeForm) => ({
         record,
-        inputType: col.dataIndex === 'yearlyHoliday' ? 'number' : 'text',
+        inputType: col.dataIndex === 'year_holiday' ? 'number' : 'text',
         dataIndex: col.dataIndex,
         title: col.title,
         editing: isEditing(record),
       }),
     };
-  }), [columns, isEditing]);
+  });
 
-  const EditableCell: React.FC<any> = ({
+  const handleDelete = async (key: React.Key) => {
+    try {
+      // Call your backend to delete the employee
+      await invoke('delete_employee', { employeeNumber: dataSource.find(item => item.key === key)?.employee_number });
+      
+      // Update the local state
+      setDataSource(prevData => prevData.filter(item => item.key !== key));
+    } catch (error) {
+      console.error("Error deleting employee:", error);
+    }
+  };
+
+  const EditableCell: React.FC<EditableCellProps> = ({
     editing,
     dataIndex,
     title,
@@ -236,35 +272,14 @@ const Mitarbeiterbogen = () => {
     children,
     ...restProps
   }) => {
-    const inputNode =
-      dataIndex === 'area' || dataIndex === 'group' ? (
-        <Select>
-          {dataIndex === 'area' ? (
-            <>
-              <Select.Option value={1}>BW</Select.Option>
-              <Select.Option value={2}>HW</Select.Option>
-              <Select.Option value={3}>A</Select.Option>
-            </>
-          ) : (
-            <>
-              <Select.Option value={1}>Yellow</Select.Option>
-              <Select.Option value={2}>Blue</Select.Option>
-              <Select.Option value={3}>Grey</Select.Option>
-            </>
-          )}
-        </Select>
-      ) : inputType === 'number' ? (
-        <InputNumber />
-      ) : (
-        <Input />
-      );
+    const inputNode = inputType === 'number' ? <InputNumber /> : <Input />;
     return (
       <td {...restProps}>
         {editing ? (
           <Form.Item
             name={dataIndex}
             style={{ margin: 0 }}
-            rules={[{ required: true, message: `Bitte ${title}! eintragen` }]}
+            rules={[{ required: true, message: `Bitte ${title} eintragen!` }]}
           >
             {inputNode}
           </Form.Item>
@@ -276,36 +291,31 @@ const Mitarbeiterbogen = () => {
   };
 
   return (
-    <>
-      <Button
-        onClick={handleAdd}
-        type="primary"
-        style={{
-          marginBottom: 16,
-        }}
-      >
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Button onClick={handleAdd} type="primary" style={{ marginBottom: 16 }}>
         <PlusOutlined /> Neuen Mitarbeiter hinzufügen
       </Button>
-      <Spin spinning={loading}>
-        <Form form={form} component={false}>
-          <div ref={tableRef}>
-            <Table
-              components={{
-                body: {
-                  cell: EditableCell,
-                },
-              }}
-              bordered
-              dataSource={dataSource}
-              columns={mergedColumns}
-              rowClassName="editable-row"
-              pagination={{false}}
-              scroll={{ y: 400 }}
-            />
-          </div>
-        </Form>
-      </Spin>
-    </>
+      <Form form={form} component={false}>
+      <Table
+        components={{
+          body: {
+            cell: EditableCell,
+          },
+        }}
+        dataSource={dataSource}
+        columns={mergedColumns}
+        pagination={{
+          ...pagination,
+          onChange: (page, pageSize) => {
+            setPagination(prev => ({ ...prev, current: page, pageSize }));
+            setEditingKey(''); 
+          },
+        }}
+        loading={loading}
+        rowKey="key"
+      />
+      </Form>
+    </div>
   );
 };
 

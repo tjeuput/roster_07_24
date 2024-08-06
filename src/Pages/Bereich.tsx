@@ -1,9 +1,7 @@
 
 import { Card, Space} from 'antd';
-
 import { Content } from 'antd/es/layout/layout';
 import React from 'react';
-import BereichsForm from './Bereichsform';
 import Bereichsform from './Bereichsform';
 
 
