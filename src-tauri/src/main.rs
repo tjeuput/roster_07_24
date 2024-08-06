@@ -44,31 +44,10 @@ match app_handle.db(|db| database::get_table_schedule(db)) {
 }
 
 #[tauri::command]
-fn get_employees(app_handle: AppHandle)-> String {
+fn get_employees(page:usize, page_size: usize, app_handle: AppHandle)-> Result<String, String> {
 
-    match app_handle.db(|db| database::get_employees(db)) {
-        Ok(json_string) => {
-            info!("Retrieved table: {}", json_string); // Log the retrieved items
-            json_string
-        },
-        Err(e) => {
-            eprintln!("Failed to fetch get employees from the database: {}", e);
-            format!("Error: {}", e)
-        }
-    }
-}
-
-#[tauri::command]
-fn set_employee(employee: database::Employee, state: State<'_, AppState>) -> Result<String, String> {
-    let mut db = state.db.lock().unwrap();
-    if let Some(ref mut conn) = *db {
-        match set_employee(conn, &employee) {
-            Ok(id) => Ok(format!("Employee saved successfully with id: {}", id)),
-            Err(e) => Err(format!("Failed to save employee: {}", e)),
-        }
-    } else {
-        Err("Database connection not available".into())
-    }
+    app_handle.db(|db| database::get_employees(db, page, page_size))
+    .map_err(|e| format!("Error: {}", e))
 }
 
 
@@ -117,7 +96,7 @@ fn main() {
            
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet, get_table_schedule, get_employees, set_employee])
+        .invoke_handler(tauri::generate_handler![greet, get_table_schedule, get_employees])
         .run(tauri::generate_context!())
         .expect("Error while running application");
 }

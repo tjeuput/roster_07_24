@@ -55,10 +55,10 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 600,
+        "height": 1080,
         "resizable": true,
-        "title": "vite-project",
-        "width": 800
+        "title": "BO Dienstplan",
+        "width": 1980
       }
     ]
   }

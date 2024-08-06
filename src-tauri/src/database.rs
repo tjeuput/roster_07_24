@@ -175,47 +175,54 @@ struct DbResultEmployee {
     year_holiday: i32
 }
 
-pub fn get_employees(db : &Connection)->Result<String, rusqlite::Error>{
+#[derive(Serialize)]
+struct PaginatedResponse {
+    employees: Vec<DbResultEmployee>,
+    total_count: usize,
+}
+
+pub fn get_employees(db : &Connection, page:usize, page_size:usize)->Result<String, rusqlite::Error>{
+
+    let offset = (page-1) * page_size;
+
     let mut stmt = db.prepare("
     SELECT 
         e.employee_number, 
         e.name, 
         e.last_name,
-        h.year_holiday,
-		e.id_area,
-		e.id_group
-    FROM TB_YEAR_HOLIDAY h
-    LEFT JOIN tb_employee e 
-	    ON e.id_employee = h.id_employee
-	LEFT JOIN TB_AREA a
-		ON e.id_area = a.id_area 
-	LEFT JOIN TB_GROUP g
-		ON e.id_group = g.id_group
+        COALESCE(h.year_holiday, 0) as year_holiday,
+        e.id_area,
+        e.id_group
+    FROM TB_EMPLOYEE e
+    LEFT JOIN TB_YEAR_HOLIDAY h 
+        ON e.id_employee = h.id_employee AND h.year = 2024
+    LIMIT ? OFFSET ?    
      ")?;
 
-    let db_result: Vec<DbResultEmployee> = stmt.query_map([], |row| {
-        let employee_number: String = row.get("employee_number")?;
-        let name: String = row.get("name")?;
-        let last_name: String = row.get("last_name")?;
-        let id_area: i32 = row.get("id_area")?;
-        let id_group: i32 = row.get("id_group")?;
-        let year_holiday: i32 = row.get("year_holiday")?;
-        
-        println!("Debug: Raw result - employee number: {:?}, name: {:?}, last_name: {:?}, id area: {:?}, id group: {:?}, year holiday: {:?}", 
-                    employee_number, name, last_name, id_area, id_group, year_holiday);
-
+     let employees: Vec<DbResultEmployee> = stmt.query_map(&[&(page_size as i64), &(offset as i64)], |row| {
         Ok(DbResultEmployee {
-            employee_number,
-            name,
-            last_name,
-            id_area,
-            id_group,
-            year_holiday
+            employee_number: row.get("employee_number")?,
+            name: row.get("name")?,
+            last_name: row.get("last_name")?,
+            id_area: row.get("id_area")?,
+            id_group: row.get("id_group")?,
+            year_holiday: row.get("year_holiday")?,
         })
     })?.collect::<Result<Vec<_>, _>>()?;
 
-    serde_json::to_string(&db_result)
-        .map_err(|_| rusqlite::Error::ExecuteReturnedResults)
+    let total_count: usize = db.query_row(
+        "SELECT COUNT(*) FROM TB_EMPLOYEE", 
+        [], 
+        |row| row.get(0)
+    )?;
+
+    let response = PaginatedResponse {
+        employees,
+        total_count,
+    };
+
+    serde_json::to_string(&response)
+        .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))
    
 }
 
