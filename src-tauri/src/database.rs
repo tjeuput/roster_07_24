@@ -146,7 +146,6 @@ struct Session {
 
 pub fn set_employee(db: &mut Connection, employee: &Employee)->Result<i64, rusqlite::Error> {
 
-
     let  tx = db.transaction()?;
 
     tx.execute(
@@ -165,6 +164,8 @@ pub fn set_employee(db: &mut Connection, employee: &Employee)->Result<i64, rusql
 
     Ok(id_employee)
 }
+
+
 #[derive(Serialize,Deserialize)]
 struct DbResultEmployee {
     employee_number: String,
@@ -244,16 +245,15 @@ pub fn get_table_schedule(db: &Connection) ->  Result<String, rusqlite::Error>{
 
   let mut stmt = db.prepare("
   WITH employees_data AS (
-     SELECT
-	e.id_employee,
-	e.name,
-	e.last_name,
-    
-    GROUP_CONCAT(ts1.name) AS sessions_planned, 
-
-    GROUP_CONCAT(ts2.name) AS sessions_updated,
-	
-	(
+    SELECT
+        e.id_employee,
+        e.name,
+        e.last_name,
+        s.date_id,
+        ts1.name AS sessions_planned, 
+        ts2.name AS sessions_updated,
+        h.year_holiday,
+		(
             SELECT COUNT(
                 CASE
                    WHEN (sh_2023.updated_session_id IS NULL OR sh_2023.updated_session_id = '')
@@ -264,12 +264,21 @@ pub fn get_table_schedule(db: &Connection) ->  Result<String, rusqlite::Error>{
             ) AS rest_2023
             FROM TB_SCHEDULE_2023 sh_2023
             LEFT JOIN TB_YEAR_HOLIDAY yh ON yh.id_employee = sh_2023.id_employee
-            WHERE yh.id_employee = e.id_employee AND yh.year = 2023
+            WHERE yh.year = 2023 AND yh.id_employee = e.id_employee
         ) AS rest_2023,
-		h.year_holiday,
-
-		-- how many rest urlaub is used already
-	(
+		 (
+            SELECT COUNT(
+                CASE
+                    WHEN (sh_2024.updated_session_id IS NULL OR sh_2024.updated_session_id = '')
+                        AND sh_2024.session_id = 6 THEN 1
+                    WHEN sh_2024.updated_session_id = '6' THEN 1
+                    ELSE NULL 
+                END
+            ) AS um_plan
+            FROM TB_SCHEDULE_2024 sh_2024
+            WHERE sh_2024.id_employee = e.id_employee
+        ) as um_plan,
+		(
             SELECT COUNT(
                 CASE
                     WHEN (sh_2024.updated_session_id IS NULL OR sh_2024.updated_session_id = '')
@@ -280,42 +289,40 @@ pub fn get_table_schedule(db: &Connection) ->  Result<String, rusqlite::Error>{
             ) AS rum
             FROM TB_SCHEDULE_2024 sh_2024
             WHERE sh_2024.id_employee = e.id_employee
-        ) as rum,
-		 COUNT(
-            CASE WHEN (s.updated_session_id IS NULL OR s.updated_session_id = '')
-                AND s.session_id = 6 THEN 1
-				WHEN s.updated_session_id = 6 Then 1
-                ELSE NULL
-            END) as um_plan
-			
-			
-		
-FROM 
-    TB_SCHEDULE_2024 s
-LEFT JOIN 
-    TB_SESSION ts1 ON s.session_id = ts1.session_id
-LEFT JOIN 
-    TB_SESSION ts2 ON s.updated_session_id = ts2.session_id
-
-INNER JOIN 
-	TB_EMPLOYEE e ON s.id_employee = e.id_employee
-	
-INNER JOIN TB_YEAR_HOLIDAY h on s.id_employee = h.id_employee	
-	
-WHERE 
-    h.year= 2024
-GROUP BY s.id_employee
+        ) as rum
+       
+    FROM 
+        TB_SCHEDULE_2024 s
+    LEFT JOIN 
+        TB_SESSION ts1 ON s.session_id = ts1.session_id
+    LEFT JOIN 
+        TB_SESSION ts2 ON s.updated_session_id = ts2.session_id
+    INNER JOIN 
+        TB_EMPLOYEE e ON s.id_employee = e.id_employee
+    INNER JOIN 
+        TB_YEAR_HOLIDAY h ON s.id_employee = h.id_employee
+    WHERE 
+        h.year = 2024
+   
+    ORDER BY 
+        e.id_employee, s.date_id
 )
-SELECT id_employee,
+SELECT 
+    id_employee,
     name,
     last_name,
-    sessions_planned,
-    sessions_updated,
-    rest_2023,
-    (rest_2023 - rum) AS rum_rest,
-    year_holiday,
-    um_plan
-FROM employees_data;")?;
+    GROUP_CONCAT(sessions_planned) as sessions_planned,
+    GROUP_CONCAT(sessions_updated) as sessions_updated,
+	rest_2023,
+	um_plan,
+	(rest_2023 - rum) AS rum_rest,
+	year_holiday,
+	um_plan
+  
+FROM 
+    employees_data
+GROUP BY id_employee, name, last_name	
+")?;
 
     let db_results: Vec<DbResultDiesntplan> = stmt.query_map([], |row| {
     
