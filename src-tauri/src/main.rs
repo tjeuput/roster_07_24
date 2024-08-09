@@ -8,32 +8,16 @@ use tauri::{AppHandle, Manager}; //v
 use log::info;
 use std::sync::Arc;
 use chrono::Utc;
-use crate::database::update_schedule;
+use crate::database::{Employee, update_schedule};
 
 
 
 #[tauri::command]
-fn greet(app_handle: AppHandle) -> String {
+fn get_table_schedule_area(app_handle: AppHandle, area:i32) -> String {
 
-match app_handle.db(|db| database::get_all(db)) {
-    Ok(items) => {
-        let items_string = items.join(" | ");
-        info!("Retrieved items: {}", items_string); // Log the retrieved items
-        format!("Your name log: {}", items_string)
-    },
-    Err(e) => {
-        eprintln!("Failed to fetch data from the database: {}", e);
-        format!("Error: {}", e)
-    }
-}
-}
-
-#[tauri::command]
-fn get_table_schedule(app_handle: AppHandle) -> String {
-
-match app_handle.db(|db| database::get_table_schedule(db)) {
+match app_handle.db(|db| database::get_table_schedule_area(db, area)) {
     Ok(json_string) => {
-        info!("Retrieved table: {}", json_string); // Log the retrieved items
+        //info!("Retrieved table: {}", json_string); // Log the retrieved items
         json_string
     },
     Err(e) => {
@@ -50,6 +34,36 @@ fn get_employees(page:usize, page_size: usize, app_handle: AppHandle)-> Result<S
     .map_err(|e| format!("Error: {}", e))
 }
 
+#[tauri::command]
+fn add_employee(app_handle: AppHandle, employee: Employee) -> Result<String, String> {
+    info!("add_employee called with: {:?}", employee);
+    let result = app_handle.db_mut(|db| {
+        match database::add_employee(db, &employee) {
+            Ok(id) => Ok(format!("Employee added with ID: {}", id)),
+            Err(e) => Err(format!("Failed to add employee: {}", e)),
+        }
+    });
+    info!("add_employee result: {:?}", result);
+    result
+}
+
+#[tauri::command]
+fn get_employee_daily_count_area(app_handle: AppHandle, area:i32)->Result<String, String> {
+    app_handle.db(|db| database::get_employee_daily_count_area(db, area))
+    .map_err(|e|format!("Error:{}", e))
+}
+
+#[tauri::command]
+fn get_group(app_handle: AppHandle) -> Result <String, String> {
+    app_handle.db(|db| database::get_group(db))
+    .map_err(|e| format!("Error:{}", e))
+}
+
+#[tauri::command]
+fn get_session(app_handle: AppHandle) -> Result <String, String>{
+    app_handle.db(|db|database::get_session(db))
+    .map_err(|e| format!("Error:{}", e))
+}
 
 fn main() {
 
@@ -96,7 +110,7 @@ fn main() {
            
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet, get_table_schedule, get_employees])
+        .invoke_handler(tauri::generate_handler![get_table_schedule_area, get_employees, add_employee, get_employee_daily_count_area, get_group, get_session])
         .run(tauri::generate_context!())
         .expect("Error while running application");
 }

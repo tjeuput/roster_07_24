@@ -1,9 +1,5 @@
-
 import { Months, Days } from './helper';
 import './ScheduleTblAnt.css'; 
-
-
-
 
 const MonthsHeader = () => {
   let currentDay = 0;
@@ -72,7 +68,7 @@ const MonthsHeader = () => {
             title: Days[dayOfWeek],
             
             dataIndex: `${month.name.toLowerCase()}-${indexDay + 1}`,
-            key: `${month.name.toLowerCase()}-${indexDay + 1}`,
+            key: `${month.name.toLowerCase()}-${indexDay + 1}`, // this is what I want to go, the header
             className: dayOfWeek=== 6 || dayOfWeek === 0 ? 'weekend-cell':undefined,
             width: 50,
             children: [
@@ -80,8 +76,9 @@ const MonthsHeader = () => {
                 title: `${indexDay + 1}.${index}`,
                 dataIndex: `${currentDay}`,
                 className: dayOfWeek === 6 || dayOfWeek === 0 ? 'weekend-cell' : undefined,
-                width: 50
-
+                width: 50,
+                onHeaderCell: () => ({ 'data-key': `${month.name.toLowerCase()}-${indexDay + 1}` }) 
+                
               }
             ]
           } 

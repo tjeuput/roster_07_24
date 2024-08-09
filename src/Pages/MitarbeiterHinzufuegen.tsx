@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Form, Input, Select, InputNumber, Button, message } from 'antd';
+import { Form, Input, Select, InputNumber, Button, message } from 'antd';
 import { invoke } from '@tauri-apps/api/tauri';
 
 const { Option } = Select;
@@ -9,55 +9,51 @@ const EmployeeForm = () => {
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
-  const columns = [
-    {
-      title: 'Dienstausweisnummer',
-      dataIndex: 'employee_number',
-      key: 'employee_number',
-      width:350,
-      render: (_, record) => ( // what is record?
+  const onFinish = async (values) => {
+    setLoading(true);
+    try {
+      const result = await invoke('add_employee', { employee: values });
+      if (result && result.startsWith("Employee added with ID:")) {
+        messageApi.success(result);
+        form.resetFields();
+      } else {
+        messageApi.error('Unexpected response: ' + result);
+      }
+    } catch (error) {
+      messageApi.error('Mitarbeiter kann nicht hinzugefügt werden: ' + error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      {contextHolder}
+      <Form form={form} onFinish={onFinish} layout="vertical">
         <Form.Item
           name="employee_number"
+          label="Dienstausweisnummer"
           rules={[{ required: true, message: 'Bitte Dienstausweisnummer eingeben!' }]}
         >
           <Input />
         </Form.Item>
-      ),
-    },
-    {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-      render: (_, record) => (
         <Form.Item
           name="name"
+          label="Name"
           rules={[{ required: true, message: 'Bitte Vorname eingeben' }]}
         >
           <Input />
         </Form.Item>
-      ),
-    },
-    {
-      title: 'Nachname',
-      dataIndex: 'last_name',
-      key: 'last_name',
-      render: (_, record) => (
         <Form.Item
           name="last_name"
+          label="Nachname"
           rules={[{ required: true, message: 'Bitte Nachname eingeben!' }]}
         >
           <Input />
         </Form.Item>
-      ),
-    },
-    {
-      title: 'Id Bereich',
-      dataIndex: 'id_area',
-      key: 'id_area',
-      width: 50,
-      render: (_, record) => (
         <Form.Item
           name="id_area"
+          label="Id Bereich"
           rules={[{ required: true, message: 'Bitte Id Bereich eingeben!' }]}
         >
           <Select>
@@ -66,16 +62,9 @@ const EmployeeForm = () => {
             <Option value={3}>3</Option>
           </Select>
         </Form.Item>
-      ),
-    },
-    {
-      title: 'Id Gruppe',
-      dataIndex: 'id_group',
-      key: 'id_group',
-      width: 50,
-      render: (_, record) => (
         <Form.Item
           name="id_group"
+          label="Id Gruppe"
           rules={[{ required: true, message: 'Bitte Id Gruppe eingeben!' }]}
         >
           <Select>
@@ -84,52 +73,20 @@ const EmployeeForm = () => {
             <Option value={3}>3</Option>
           </Select>
         </Form.Item>
-      ),
-    },
-    {
-      title: 'Jahresurlaub Anzahl',
-      dataIndex: 'year_holiday',
-      key: 'year_holiday',
-      render: (_, record) => (
         <Form.Item
           name="year_holiday"
+          label="Jahresurlaub Anzahl"
           rules={[{ required: true, message: 'Bitte Jahresurlaub Anzahl eingeben!' }]}
         >
           <InputNumber min={0} />
         </Form.Item>
-      ),
-    },
-  ];
-
-  const onFinish = async (values) => { // where do values come from
-    console.log('Form values (stringified):', JSON.stringify(values, null, 2));
-    setLoading(true);
-    try {
-      await invoke('add_employee', { employee: values });
-      
-      messageApi.success('Success message');
-      form.resetFields();
-    } catch (error) {
-        messageApi.error('Mitarbeiter kann nicht hinzugefügt werden: ' + error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Form form={form} onFinish={onFinish} > 
-      <Table
-        columns={columns}
-        dataSource={[{}]}
-        pagination={false}
-        rowKey={() => 'employee_form'}
-      />
-      <Form.Item>
-        <Button type="primary" htmlType="submit" loading={loading}>
-          Neu Mitarbeiter hinzufügen
-        </Button>
-      </Form.Item>
-    </Form>
+        <Form.Item>
+          <Button type="primary" htmlType="submit" loading={loading}>
+            Neu Mitarbeiter hinzufügen
+          </Button>
+        </Form.Item>
+      </Form>
+    </>
   );
 };
 

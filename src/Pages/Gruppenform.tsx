@@ -72,20 +72,6 @@ const Gruppenform = () => {
     }
   };
 
-  const handleAdd = () => {
-    const newKey = dataSource.length ? dataSource[dataSource.length - 1].key + 1 : 1;
-    const newData: DataSourceType = {
-      key: newKey,
-      idGroup: 1,
-      groupLabel: '',
-      minGroupSize: 0,
-      groupColor: ''
-      
-    };
-    setDataSource([...dataSource, newData]);
-    edit(newData);
-  };
-
   const columns = [
     {
       title: 'Id Gruppe',
@@ -179,15 +165,7 @@ const Gruppenform = () => {
 
   return (
     <>
-      <Button
-        onClick={handleAdd}
-        type="primary"
-        style={{
-          marginBottom: 16,
-        }}
-      >
-        <PlusOutlined /> Neue Gruppe hinzufügen
-      </Button>
+
       <Form form={form} component={false}>
         <Table
           components={{

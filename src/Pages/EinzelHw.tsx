@@ -22,8 +22,38 @@ interface MappedEmployee {
   [key: string]: number | string;
 }
 
+interface EmployeeCount {
+  name: string;
+  [key: string]: number | string; // Allowing both number and string for flexibility
+}
+
 const EinzelHw: React.FC = () => {
   const [schedule, setSchedule] = useState<MappedEmployee[]>([]);
+
+  const fetchEmployeeDaily = async () => {
+    try {
+      const response = await invoke<string>("get_employee_daily_count");
+      
+      const parsedResponse = JSON.parse(response);
+    
+      // Map the parsed JSON to the EmployeeCount interface
+      const employeeCountMapped: EmployeeCount[] = {
+  ...parsedResponse,
+  name: "Mirarbeiter am Meldetag"
+        
+      }
+
+      console.log("count map", employeeCountMapped);
+
+    } catch (error){
+      console.log("error fetching employee daily:", error);
+    }
+  };
+
+  useEffect(()=>{
+    fetchEmployeeDaily();
+  }, []
+)
 
   const fetchSchedule = async () => {
     try {
@@ -32,6 +62,8 @@ const EinzelHw: React.FC = () => {
 
       const parsedResponse: Employee[] = JSON.parse(response);
 
+      
+      
       const mappedData: MappedEmployee[] = parsedResponse.flatMap((employee, index) => {
         if (!employee) {
           console.error(`Employee at index ${index} is undefined`);
@@ -55,7 +87,7 @@ const EinzelHw: React.FC = () => {
 
         return [baseEmployee, updatedEmployee];
       });
-      console.log("Mapped data is:", mappedData);
+      //console.log("Mapped data is:", mappedData);
       setSchedule(mappedData);
     } catch (error) {
       console.error("Error fetching schedule:", error);
