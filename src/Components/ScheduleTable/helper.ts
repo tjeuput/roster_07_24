@@ -1,18 +1,6 @@
 export type Days = string[];
 
-
-/*     
-interface Employee {
-  plan: string[];
-  id: string;
-  firstName: 'Name'; lastName:'last';
-  rest: string;
-  rum: string;
-  actual: string[]
-  
-} */
-
-interface Month{
+export interface Month{
   name: string; start: number; days: number;
 }
 

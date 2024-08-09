@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Table, Input, Button, Popconfirm, Form, Select, InputNumber, Spin } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+
 import { invoke } from '@tauri-apps/api/tauri';
 
 interface EditableCellProps {
@@ -8,10 +8,10 @@ interface EditableCellProps {
   dataIndex: string;
   title: string;
   inputType: 'number' | 'text';
-  record: any; // You can replace 'any' with a more specific type if available
+  record: any; 
   index: number;
   children: React.ReactNode;
-  [key: string]: any; // For any additional props
+  [key: string]: any; 
 }
 
 interface EmployeeForm {
@@ -57,6 +57,7 @@ const Mitarbeiterbogen = () => {
     try {
       setLoading(true);
       const response = await invoke("get_employees", { page, pageSize });
+      
       console.log("Response is", response);
   
       const { employees, total_count } = JSON.parse(response);
@@ -127,20 +128,6 @@ const Mitarbeiterbogen = () => {
   };
 
 
-  const handleAdd = () => {
-    const newKey = Date.now(); // Use timestamp as a unique key
-    const newData: EmployeeForm = {
-      key: newKey,
-      employee_number: '',
-      name: '',
-      last_name: '',
-      id_area: 1,
-      id_group: 1,
-      year_holiday: 0,
-    };
-    setDataSource(prevData => [newData, ...prevData]);
-    edit(newData);
-  };
 
   const columns = useMemo(() => [
     {
@@ -171,7 +158,7 @@ const Mitarbeiterbogen = () => {
       dataIndex: 'id_area',
       editable: true,
       render: (text: number, record: EmployeeForm) => {
-        const groups = { 1: 'Yellow', 2: 'Blue', 3: 'Grey' };
+        const groups = { 1: 'Gelbe', 2: 'Blau', 3: 'Grau' };
         return isEditing(record) ? (
           <Select defaultValue={text} style={{ width: 120 }}>
             {Object.entries(groups).map(([id, name]) => (
@@ -186,7 +173,7 @@ const Mitarbeiterbogen = () => {
       dataIndex: 'id_group',
       editable: true,
       render: (text: number, record: EmployeeForm) => {
-        const groups = { 1: 'Yellow', 2: 'Blue', 3: 'Grey' };
+        const groups = { 1: 'HW', 2: 'BW', 3: 'A' };
         return isEditing(record) ? (
           <Select defaultValue={groups[text as keyof typeof groups]} style={{ width: 120 }}>
             {Object.entries(groups).map(([id, name]) => (
@@ -292,9 +279,7 @@ const Mitarbeiterbogen = () => {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Button onClick={handleAdd} type="primary" style={{ marginBottom: 16 }}>
-        <PlusOutlined /> Neuen Mitarbeiter hinzufügen
-      </Button>
+     
       <Form form={form} component={false}>
       <Table
         components={{

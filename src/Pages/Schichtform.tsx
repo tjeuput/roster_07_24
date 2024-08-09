@@ -1,15 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Input, Button, Popconfirm, Form, Select, InputNumber, Card } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import { DateTime } from 'rrule/dist/esm/datetime';
-
-const waitTime = (time: number = 100) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(true);
-    }, time);
-  });
-};
+import { Table, Input, Button, Popconfirm, Form } from 'antd';
 
 type DataSourceType = {
   key: React.Key;
@@ -36,7 +26,7 @@ const defaultData: DataSourceType[] = [
   },
 ];
 
-const Schichtform = () => {
+const Schichtform: React.FC = () => {
   const [form] = Form.useForm();
   const [dataSource, setDataSource] = useState<DataSourceType[]>(defaultData);
   const [editingKey, setEditingKey] = useState<React.Key>('');
@@ -70,19 +60,6 @@ const Schichtform = () => {
     } catch (errInfo) {
       console.log('Validate Failed:', errInfo);
     }
-  };
-
-  const handleAdd = () => {
-    const newKey = dataSource.length ? dataSource[dataSource.length - 1].key + 1 : 1;
-    const newData: DataSourceType = {
-      key: newKey,
-      sessionId : 1,
-      name: '', 
-      startTime: '',
-      endTime:''
-    };
-    setDataSource([...dataSource, newData]);
-    edit(newData);
   };
 
   const columns = [
@@ -185,15 +162,7 @@ const Schichtform = () => {
 
   return (
     <>
-      <Button
-        onClick={handleAdd}
-        type="primary"
-        style={{
-          marginBottom: 16,
-        }}
-      >
-        <PlusOutlined /> Neue Schichtart hinzufügen 
-      </Button>
+      
       <Form form={form} component={false}>
         <Table
           components={{

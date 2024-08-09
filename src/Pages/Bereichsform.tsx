@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Input, Button, Popconfirm, Form, Select, InputNumber, Card } from 'antd';
+import { Table, Input, Button, Popconfirm, Form } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 
 const waitTime = (time: number = 100) => {
@@ -69,18 +69,6 @@ const Bereichsform = () => {
     }
   };
 
-  const handleAdd = () => {
-    const newKey = dataSource.length ? dataSource[dataSource.length - 1].key + 1 : 1;
-    const newData: DataSourceType = {
-      key: newKey,
-      idArea: 1,
-      nameArea: '',
-      abbrArea: '',
-      
-    };
-    setDataSource([...dataSource, newData]);
-    edit(newData);
-  };
 
   const columns = [
     {
@@ -175,15 +163,7 @@ const Bereichsform = () => {
 
   return (
     <>
-      <Button
-        onClick={handleAdd}
-        type="primary"
-        style={{
-          marginBottom: 16,
-        }}
-      >
-        <PlusOutlined /> Neuen Bereich hinzufügen
-      </Button>
+     
       <Form form={form} component={false}>
         <Table
           components={{

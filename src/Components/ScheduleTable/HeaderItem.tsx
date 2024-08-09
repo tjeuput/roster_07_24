@@ -1,5 +1,5 @@
 import { Column } from 'react-table';
-import {Months, Days} from './helper';
+import { Months, Days} from './helper';
 
 interface DayData{
   date: string;
